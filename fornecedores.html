@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransLog - Fornecedores</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .modal {
+            transition: opacity 0.3s ease;
+        }
+        .modal.hidden {
+            display: none;
+            opacity: 0;
+        }
+        .modal.flex {
+            display: flex;
+            opacity: 1;
+        }
+        table tr:hover {
+            background-color: #f9fafb;
+        }
+        .error-input {
+            border-color: #ef4444 !important;
+            background-color: #fef2f2;
+        }
+        .error-message {
+            color: #ef4444;
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+        .success-input {
+            border-color: #10b981 !important;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-semibold">Fornecedores</h3>
+                <button onclick="abrirModalFornecedor()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-plus mr-2"></i>Novo Fornecedor
+                </button>
+            </div>
+            
+            <!-- Busca -->
+            <div class="mt-4">
+                <input type="text" id="buscaFornecedores" placeholder="Buscar fornecedor por nome, CNPJ ou produto..." 
+                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                    onkeyup="buscarFornecedores()">
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">CNPJ</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produto/Serviço</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telefone</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cidade/UF</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaFornecedores" class="divide-y divide-gray-200"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal de Fornecedor -->
+    <div id="modalFornecedor" class="modal hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold" id="modalTitulo">Novo Fornecedor</h3>
+                <button onclick="fecharModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="formFornecedor" onsubmit="salvarFornecedor(event)">
+                <input type="hidden" id="fornecedorId">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nome/Razão Social*</label>
+                        <input type="text" id="fornecedorNome" required maxlength="100" 
+                            class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">CNPJ*</label>
+                        <input type="text" id="fornecedorCnpj" required maxlength="18" 
+                            onkeyup="mascaraCNPJ(this)" onblur="validarCNPJ()"
+                            placeholder="00.000.000/0000-00"
+                            class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500">
+                        <div id="cnpjError" class="error-message hidden"></div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Produto/Serviço*</label>
+                        <input type="text" id="fornecedorProduto" required maxlength="100" 
+                            class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                        <input type="text" id="fornecedorTelefone" maxlength="15" onkeyup="mascaraTelefone(this)"
+                            class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email*</label>
+                        <input type="email" id="fornecedorEmail" required maxlength="100" 
+                            onblur="validarEmail()"
+                            class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500">
+                        <div id="emailError" class="error-message hidden"></div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">CEP</label>
+                        <div class="flex space-x-2">
+                            <input type="text" id="fornecedorCep" maxlength="9" onkeyup="mascaraCep(this)" 
+                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500">
+                            <button type="button" onclick="buscarCep()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        <div id="cepError" class="error-message hidden"></div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Endereço</label>
+                        <input type="text" id="fornecedorEndereco" maxlength="200" readonly
+                            class="w-full px-3 py-2 border rounded-lg bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
+                        <input type="text" id="fornecedorCidade" maxlength="100" readonly
+                            class="w-full px-3 py-2 border rounded-lg bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">UF</label>
+                        <input type="text" id="fornecedorUf" maxlength="2" readonly
+                            class="w-full px-3 py-2 border rounded-lg bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Bairro</label>
+                        <input type="text" id="fornecedorBairro" maxlength="100" readonly
+                            class="w-full px-3 py-2 border rounded-lg bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Complemento</label>
+                        <input type="text" id="fornecedorComplemento" maxlength="100"
+                            class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Número</label>
+                        <input type="text" id="fornecedorNumero" maxlength="10"
+                            class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Inscrição Estadual</label>
+                        <input type="text" id="fornecedorIe" maxlength="20"
+                            class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                </div>
+                <div class="mt-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Observações</label>
+                    <textarea id="fornecedorObservacoes" rows="3" maxlength="500" class="w-full px-3 py-2 border rounded-lg"></textarea>
+                </div>
+                <div class="flex justify-end space-x-4 mt-6">
+                    <button type="button" onclick="fecharModal()" class="px-6 py-2 border rounded-lg hover:bg-gray-50">Cancelar</button>
+                    <button type="submit" id="btnSalvar" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Dados iniciais
+        let fornecedores = JSON.parse(localStorage.getItem('fornecedores')) || [
+            { id: 1, nome: 'Distribuidora de Combustíveis Ltda', cnpj: '56.789.012/0001-34', produto: 'Combustível', telefone: '(11) 5678-9012', email: 'vendas@combustiveis.com.br', cidade: 'São Paulo', uf: 'SP' },
+            { id: 2, nome: 'Pneus Brasil', cnpj: '67.890.123/0001-45', produto: 'Pneus', telefone: '(11) 6789-0123', email: 'comercial@pneusbrasil.com.br', cidade: 'São Bernardo', uf: 'SP' },
+            { id: 3, nome: 'Oleos Lubrificantes S.A.', cnpj: '78.901.234/0001-56', produto: 'Óleo', telefone: '(21) 7890-1234', email: 'vendas@oleos.com.br', cidade: 'Rio de Janeiro', uf: 'RJ' }
+        ];
+
+        if (!localStorage.getItem('fornecedores')) {
+            localStorage.setItem('fornecedores', JSON.stringify(fornecedores));
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarTabela();
+        });
+
+        function carregarTabela() {
+            fornecedores = JSON.parse(localStorage.getItem('fornecedores')) || [];
+            const tbody = document.getElementById('tabelaFornecedores');
+            
+            if (fornecedores.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">Nenhum fornecedor cadastrado</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = fornecedores.map(f => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${f.id}</td>
+                    <td class="px-6 py-4">${f.nome}</td>
+                    <td class="px-6 py-4">${f.cnpj}</td>
+                    <td class="px-6 py-4">${f.produto}</td>
+                    <td class="px-6 py-4">${f.telefone || '-'}</td>
+                    <td class="px-6 py-4">${f.email || '-'}</td>
+                    <td class="px-6 py-4">${f.cidade || '-'}/${f.uf || '-'}</td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarFornecedor(${f.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="excluirFornecedor(${f.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function buscarFornecedores() {
+            const termo = document.getElementById('buscaFornecedores').value.toLowerCase();
+            const fornecedores = JSON.parse(localStorage.getItem('fornecedores')) || [];
+            
+            const resultados = fornecedores.filter(f => 
+                f.nome.toLowerCase().includes(termo) ||
+                (f.cnpj && f.cnpj.toLowerCase().includes(termo)) ||
+                (f.produto && f.produto.toLowerCase().includes(termo)) ||
+                (f.cidade && f.cidade.toLowerCase().includes(termo))
+            );
+            
+            const tbody = document.getElementById('tabelaFornecedores');
+            if (resultados.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">Nenhum fornecedor encontrado</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = resultados.map(f => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${f.id}</td>
+                    <td class="px-6 py-4">${f.nome}</td>
+                    <td class="px-6 py-4">${f.cnpj}</td>
+                    <td class="px-6 py-4">${f.produto}</td>
+                    <td class="px-6 py-4">${f.telefone || '-'}</td>
+                    <td class="px-6 py-4">${f.email || '-'}</td>
+                    <td class="px-6 py-4">${f.cidade || '-'}/${f.uf || '-'}</td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarFornecedor(${f.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="excluirFornecedor(${f.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Funções de Máscara
+        function mascaraCNPJ(input) {
+            let valor = input.value.replace(/\D/g, '');
+            
+            // CNPJ: 00.000.000/0000-00
+            if (valor.length <= 14) {
+                valor = valor.replace(/^(\d{2})(\d)/, '$1.$2');
+                valor = valor.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+                valor = valor.replace(/\.(\d{3})(\d)/, '.$1/$2');
+                valor = valor.replace(/(\d{4})(\d)/, '$1-$2');
+            }
+            
+            input.value = valor;
+        }
+
+        function mascaraTelefone(input) {
+            let valor = input.value.replace(/\D/g, '');
+            if (valor.length <= 10) {
+                // Telefone fixo: (00) 0000-0000
+                valor = valor.replace(/^(\d{2})(\d)/, '($1) $2');
+                valor = valor.replace(/(\d{4})(\d)/, '$1-$2');
+            } else {
+                // Celular: (00) 00000-0000
+                valor = valor.replace(/^(\d{2})(\d)/, '($1) $2');
+                valor = valor.replace(/(\d{5})(\d)/, '$1-$2');
+            }
+            input.value = valor;
+        }
+
+        function mascaraCep(input) {
+            let valor = input.value.replace(/\D/g, '');
+            if (valor.length > 5) {
+                valor = valor.replace(/^(\d{5})(\d)/, '$1-$2');
+            }
+            input.value = valor;
+        }
+
+        // Funções de Validação
+        function validarCNPJ() {
+            const input = document.getElementById('fornecedorCnpj');
+            const errorDiv = document.getElementById('cnpjError');
+            const valor = input.value.replace(/\D/g, '');
+            
+            let valido = false;
+            
+            if (valor.length === 14) {
+                valido = validarCNPJNumero(valor);
+                errorDiv.textContent = valido ? '' : 'CNPJ inválido';
+            } else {
+                errorDiv.textContent = 'CNPJ deve ter 14 dígitos';
+            }
+            
+            if (!valido && valor.length > 0) {
+                input.classList.add('error-input');
+                errorDiv.classList.remove('hidden');
+                return false;
+            } else if (valor.length > 0) {
+                input.classList.remove('error-input');
+                input.classList.add('success-input');
+                errorDiv.classList.add('hidden');
+                return true;
+            }
+            return false;
+        }
+
+        function validarCNPJNumero(cnpj) {
+            cnpj = cnpj.replace(/\D/g, '');
+            if (cnpj.length !== 14) return false;
+            
+            // Elimina CNPJs inválidos conhecidos
+            if (/^(\d)\1+$/.test(cnpj)) return false;
+            
+            // Valida 1º dígito
+            let tamanho = cnpj.length - 2;
+            let numeros = cnpj.substring(0, tamanho);
+            let digitos = cnpj.substring(tamanho);
+            let soma = 0;
+            let pos = tamanho - 7;
+            for (let i = tamanho; i >= 1; i--) {
+                soma += numeros.charAt(tamanho - i) * pos--;
+                if (pos < 2) pos = 9;
+            }
+            let resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+            if (resultado !== parseInt(digitos.charAt(0))) return false;
+            
+            // Valida 2º dígito
+            tamanho = tamanho + 1;
+            numeros = cnpj.substring(0, tamanho);
+            soma = 0;
+            pos = tamanho - 7;
+            for (let i = tamanho; i >= 1; i--) {
+                soma += numeros.charAt(tamanho - i) * pos--;
+                if (pos < 2) pos = 9;
+            }
+            resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+            return resultado === parseInt(digitos.charAt(1));
+        }
+
+        function validarEmail() {
+            const email = document.getElementById('fornecedorEmail').value;
+            const errorDiv = document.getElementById('emailError');
+            const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (!regex.test(email)) {
+                document.getElementById('fornecedorEmail').classList.add('error-input');
+                errorDiv.textContent = 'Email inválido';
+                errorDiv.classList.remove('hidden');
+                return false;
+            } else {
+                document.getElementById('fornecedorEmail').classList.remove('error-input');
+                document.getElementById('fornecedorEmail').classList.add('success-input');
+                errorDiv.classList.add('hidden');
+                return true;
+            }
+        }
+
+        // Função de busca de CEP
+        function buscarCep() {
+            const cep = document.getElementById('fornecedorCep').value.replace(/\D/g, '');
+            const cepError = document.getElementById('cepError');
+            
+            if (cep.length !== 8) {
+                cepError.textContent = 'CEP deve ter 8 dígitos';
+                cepError.classList.remove('hidden');
+                return;
+            }
+            
+            // Mostrar loading
+            document.getElementById('fornecedorEndereco').value = 'Buscando...';
+            document.getElementById('fornecedorCidade').value = '...';
+            document.getElementById('fornecedorUf').value = '...';
+            document.getElementById('fornecedorBairro').value = '...';
+            
+            // Usando a API ViaCEP
+            fetch(`https://viacep.com.br/ws/${cep}/json/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.erro) {
+                        throw new Error('CEP não encontrado');
+                    }
+                    
+                    document.getElementById('fornecedorEndereco').value = data.logradouro || '';
+                    document.getElementById('fornecedorCidade').value = data.localidade || '';
+                    document.getElementById('fornecedorUf').value = data.uf || '';
+                    document.getElementById('fornecedorBairro').value = data.bairro || '';
+                    
+                    cepError.classList.add('hidden');
+                    document.getElementById('fornecedorCep').classList.add('success-input');
+                })
+                .catch(error => {
+                    document.getElementById('fornecedorEndereco').value = '';
+                    document.getElementById('fornecedorCidade').value = '';
+                    document.getElementById('fornecedorUf').value = '';
+                    document.getElementById('fornecedorBairro').value = '';
+                    
+                    cepError.textContent = 'Erro ao buscar CEP: ' + error.message;
+                    cepError.classList.remove('hidden');
+                    document.getElementById('fornecedorCep').classList.add('error-input');
+                });
+        }
+
+        function abrirModalFornecedor(id = null) {
+            document.getElementById('formFornecedor').reset();
+            document.getElementById('fornecedorId').value = '';
+            document.getElementById('modalTitulo').textContent = 'Novo Fornecedor';
+            
+            // Limpar campos de endereço
+            document.getElementById('fornecedorEndereco').value = '';
+            document.getElementById('fornecedorCidade').value = '';
+            document.getElementById('fornecedorUf').value = '';
+            document.getElementById('fornecedorBairro').value = '';
+            document.getElementById('fornecedorComplemento').value = '';
+            document.getElementById('fornecedorNumero').value = '';
+            
+            // Limpar classes de validação
+            document.querySelectorAll('input').forEach(input => {
+                input.classList.remove('error-input', 'success-input');
+            });
+            
+            if (id) {
+                const fornecedores = JSON.parse(localStorage.getItem('fornecedores')) || [];
+                const fornecedor = fornecedores.find(f => f.id === id);
+                if (fornecedor) {
+                    document.getElementById('modalTitulo').textContent = 'Editar Fornecedor';
+                    document.getElementById('fornecedorId').value = fornecedor.id;
+                    document.getElementById('fornecedorNome').value = fornecedor.nome || '';
+                    document.getElementById('fornecedorCnpj').value = fornecedor.cnpj || '';
+                    document.getElementById('fornecedorProduto').value = fornecedor.produto || '';
+                    document.getElementById('fornecedorTelefone').value = fornecedor.telefone || '';
+                    document.getElementById('fornecedorEmail').value = fornecedor.email || '';
+                    document.getElementById('fornecedorCep').value = fornecedor.cep || '';
+                    document.getElementById('fornecedorEndereco').value = fornecedor.endereco || '';
+                    document.getElementById('fornecedorCidade').value = fornecedor.cidade || '';
+                    document.getElementById('fornecedorUf').value = fornecedor.uf || '';
+                    document.getElementById('fornecedorBairro').value = fornecedor.bairro || '';
+                    document.getElementById('fornecedorComplemento').value = fornecedor.complemento || '';
+                    document.getElementById('fornecedorNumero').value = fornecedor.numero || '';
+                    document.getElementById('fornecedorIe').value = fornecedor.ie || '';
+                    document.getElementById('fornecedorObservacoes').value = fornecedor.observacoes || '';
+                }
+            }
+            
+            document.getElementById('modalFornecedor').classList.remove('hidden');
+            document.getElementById('modalFornecedor').classList.add('flex');
+        }
+
+        function fecharModal() {
+            document.getElementById('modalFornecedor').classList.add('hidden');
+            document.getElementById('modalFornecedor').classList.remove('flex');
+        }
+
+        function salvarFornecedor(event) {
+            event.preventDefault();
+            
+            // Validar campos obrigatórios
+            const cnpjValido = validarCNPJ();
+            const emailValido = validarEmail();
+            
+            if (!cnpjValido || !emailValido) {
+                alert('Por favor, corrija os campos com erro antes de salvar.');
+                return;
+            }
+            
+            const fornecedores = JSON.parse(localStorage.getItem('fornecedores')) || [];
+            const id = document.getElementById('fornecedorId').value;
+            
+            const fornecedorData = {
+                nome: document.getElementById('fornecedorNome').value,
+                cnpj: document.getElementById('fornecedorCnpj').value,
+                produto: document.getElementById('fornecedorProduto').value,
+                telefone: document.getElementById('fornecedorTelefone').value,
+                email: document.getElementById('fornecedorEmail').value,
+                cep: document.getElementById('fornecedorCep').value,
+                endereco: document.getElementById('fornecedorEndereco').value,
+                cidade: document.getElementById('fornecedorCidade').value,
+                uf: document.getElementById('fornecedorUf').value,
+                bairro: document.getElementById('fornecedorBairro').value,
+                complemento: document.getElementById('fornecedorComplemento').value,
+                numero: document.getElementById('fornecedorNumero').value,
+                ie: document.getElementById('fornecedorIe').value,
+                observacoes: document.getElementById('fornecedorObservacoes').value
+            };
+
+            if (id) {
+                // Editar
+                const index = fornecedores.findIndex(f => f.id == id);
+                if (index !== -1) {
+                    const oldData = {...fornecedores[index]};
+                    fornecedores[index] = { ...fornecedores[index], ...fornecedorData };
+                    localStorage.setItem('fornecedores', JSON.stringify(fornecedores));
+                    
+                    window.parent.postMessage({
+                        type: 'logModificacao',
+                        data: {
+                            tabela: 'fornecedores',
+                            operacao: 'UPDATE',
+                            registro_id: id,
+                            dados_anteriores: oldData,
+                            dados_novos: fornecedores[index]
+                        }
+                    }, '*');
+                    
+                    alert('Fornecedor atualizado com sucesso!');
+                }
+            } else {
+                // Novo
+                const novoId = fornecedores.length > 0 ? Math.max(...fornecedores.map(f => f.id)) + 1 : 1;
+                const novoFornecedor = { id: novoId, ...fornecedorData };
+                fornecedores.push(novoFornecedor);
+                localStorage.setItem('fornecedores', JSON.stringify(fornecedores));
+                
+                window.parent.postMessage({
+                    type: 'logModificacao',
+                    data: {
+                        tabela: 'fornecedores',
+                        operacao: 'INSERT',
+                        registro_id: novoId,
+                        dados_anteriores: null,
+                        dados_novos: novoFornecedor
+                    }
+                }, '*');
+                
+                alert('Fornecedor salvo com sucesso!');
+            }
+
+            fecharModal();
+            carregarTabela();
+        }
+
+        function editarFornecedor(id) {
+            abrirModalFornecedor(id);
+        }
+
+        function excluirFornecedor(id) {
+            if (confirm('Deseja realmente excluir este fornecedor?')) {
+                const fornecedores = JSON.parse(localStorage.getItem('fornecedores')) || [];
+                const fornecedor = fornecedores.find(f => f.id === id);
+                const novosFornecedores = fornecedores.filter(f => f.id !== id);
+                localStorage.setItem('fornecedores', JSON.stringify(novosFornecedores));
+                
+                window.parent.postMessage({
+                    type: 'logModificacao',
+                    data: {
+                        tabela: 'fornecedores',
+                        operacao: 'DELETE',
+                        registro_id: id,
+                        dados_anteriores: fornecedor,
+                        dados_novos: null
+                    }
+                }, '*');
+                
+                alert('Fornecedor excluído com sucesso!');
+                carregarTabela();
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransLog - Memorandos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .modal {
+            transition: opacity 0.3s ease;
+        }
+        .modal.hidden {
+            display: none;
+            opacity: 0;
+        }
+        .modal.flex {
+            display: flex;
+            opacity: 1;
+        }
+        table tr:hover {
+            background-color: #f9fafb;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-semibold">Memorandos</h3>
+                <button onclick="abrirModalMemorando()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-plus mr-2"></i>Novo Memorando
+                </button>
+            </div>
+            
+            <!-- Busca -->
+            <div class="mt-4">
+                <input type="text" id="buscaMemorandos" placeholder="Buscar por título, assunto ou responsável..." 
+                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                    onkeyup="buscarMemorandos()">
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Título</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Assunto</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Responsável</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaMemorandos" class="divide-y divide-gray-200"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal de Memorando -->
+    <div id="modalMemorando" class="modal hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold" id="modalTitulo">Novo Memorando</h3>
+                <button onclick="fecharModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="formMemorando" onsubmit="salvarMemorando(event)">
+                <input type="hidden" id="memorandoId">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Título*</label>
+                        <input type="text" id="memorandoTitulo" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Assunto*</label>
+                        <select id="memorandoAssunto" required class="w-full px-3 py-2 border rounded-lg">
+                            <option value="">Selecione...</option>
+                            <option value="geral">Geral</option>
+                            <option value="operacional">Operacional</option>
+                            <option value="financeiro">Financeiro</option>
+                            <option value="rh">Recursos Humanos</option>
+                            <option value="fiscal">Fiscal</option>
+                            <option value="tecnico">Técnico</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Responsável*</label>
+                        <input type="text" id="memorandoResponsavel" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Data</label>
+                        <input type="date" id="memorandoData" class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Prioridade</label>
+                        <select id="memorandoPrioridade" class="w-full px-3 py-2 border rounded-lg">
+                            <option value="baixa">Baixa</option>
+                            <option value="media" selected>Média</option>
+                            <option value="alta">Alta</option>
+                            <option value="urgente">Urgente</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <select id="memorandoStatus" class="w-full px-3 py-2 border rounded-lg">
+                            <option value="ativo">Ativo</option>
+                            <option value="concluído">Concluído</option>
+                            <option value="arquivado">Arquivado</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Descrição*</label>
+                    <textarea id="memorandoDescricao" rows="5" required class="w-full px-3 py-2 border rounded-lg"></textarea>
+                </div>
+                <div class="flex justify-end space-x-4 mt-6">
+                    <button type="button" onclick="fecharModal()" class="px-6 py-2 border rounded-lg hover:bg-gray-50">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Dados iniciais
+        let memorandos = JSON.parse(localStorage.getItem('memorandos')) || [
+            { id: 1, titulo: 'Reunião de Planejamento', assunto: 'geral', responsavel: 'João Silva', data: '2024-02-15', prioridade: 'alta', status: 'ativo', descricao: 'Reunião para planejamento do próximo trimestre' },
+            { id: 2, titulo: 'Manutenção Preventiva', assunto: 'tecnico', responsavel: 'Maria Santos', data: '2024-02-14', prioridade: 'media', status: 'ativo', descricao: 'Agendar manutenção dos veículos da frota' },
+            { id: 3, titulo: 'Fechamento Mensal', assunto: 'financeiro', responsavel: 'Pedro Oliveira', data: '2024-02-13', prioridade: 'urgente', status: 'concluído', descricao: 'Fechamento das contas do mês de janeiro' }
+        ];
+
+        if (!localStorage.getItem('memorandos')) {
+            localStorage.setItem('memorandos', JSON.stringify(memorandos));
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarTabela();
+        });
+
+        function carregarTabela() {
+            memorandos = JSON.parse(localStorage.getItem('memorandos')) || [];
+            const tbody = document.getElementById('tabelaMemorandos');
+            
+            if (memorandos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">Nenhum memorando cadastrado</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = memorandos.map(m => {
+                const assuntoMap = {
+                    'geral': 'Geral',
+                    'operacional': 'Operacional',
+                    'financeiro': 'Financeiro',
+                    'rh': 'RH',
+                    'fiscal': 'Fiscal',
+                    'tecnico': 'Técnico'
+                };
+                
+                const prioridadeClass = {
+                    'baixa': 'bg-gray-100 text-gray-800',
+                    'media': 'bg-blue-100 text-blue-800',
+                    'alta': 'bg-yellow-100 text-yellow-800',
+                    'urgente': 'bg-red-100 text-red-800'
+                };
+
+                return `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${m.id}</td>
+                    <td class="px-6 py-4 font-medium">${m.titulo}</td>
+                    <td class="px-6 py-4">${assuntoMap[m.assunto] || m.assunto}</td>
+                    <td class="px-6 py-4">${m.responsavel}</td>
+                    <td class="px-6 py-4">${new Date(m.data).toLocaleDateString('pt-BR')}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full 
+                            ${prioridadeClass[m.prioridade]}">
+                            ${m.prioridade}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarMemorando(${m.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="excluirMemorando(${m.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `}).join('');
+        }
+
+        function buscarMemorandos() {
+            const termo = document.getElementById('buscaMemorandos').value.toLowerCase();
+            const memorandos = JSON.parse(localStorage.getItem('memorandos')) || [];
+            
+            const resultados = memorandos.filter(m => 
+                m.titulo.toLowerCase().includes(termo) ||
+                (m.assunto && m.assunto.toLowerCase().includes(termo)) ||
+                (m.responsavel && m.responsavel.toLowerCase().includes(termo)) ||
+                (m.descricao && m.descricao.toLowerCase().includes(termo))
+            );
+            
+            const tbody = document.getElementById('tabelaMemorandos');
+            if (resultados.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">Nenhum memorando encontrado</td></tr>';
+                return;
+            }
+
+            const assuntoMap = {
+                'geral': 'Geral',
+                'operacional': 'Operacional',
+                'financeiro': 'Financeiro',
+                'rh': 'RH',
+                'fiscal': 'Fiscal',
+                'tecnico': 'Técnico'
+            };
+            
+            const prioridadeClass = {
+                'baixa': 'bg-gray-100 text-gray-800',
+                'media': 'bg-blue-100 text-blue-800',
+                'alta': 'bg-yellow-100 text-yellow-800',
+                'urgente': 'bg-red-100 text-red-800'
+            };
+
+            tbody.innerHTML = resultados.map(m => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${m.id}</td>
+                    <td class="px-6 py-4 font-medium">${m.titulo}</td>
+                    <td class="px-6 py-4">${assuntoMap[m.assunto] || m.assunto}</td>
+                    <td class="px-6 py-4">${m.responsavel}</td>
+                    <td class="px-6 py-4">${new Date(m.data).toLocaleDateString('pt-BR')}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full 
+                            ${prioridadeClass[m.prioridade]}">
+                            ${m.prioridade}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarMemorando(${m.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="excluirMemorando(${m.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function abrirModalMemorando(id = null) {
+            document.getElementById('formMemorando').reset();
+            document.getElementById('memorandoId').value = '';
+            document.getElementById('modalTitulo').textContent = 'Novo Memorando';
+            
+            // Set data atual como padrão
+            if (!id) {
+                const hoje = new Date().toISOString().split('T')[0];
+                document.getElementById('memorandoData').value = hoje;
+            }
+            
+            if (id) {
+                const memorandos = JSON.parse(localStorage.getItem('memorandos')) || [];
+                const memorando = memorandos.find(m => m.id === id);
+                if (memorando) {
+                    document.getElementById('modalTitulo').textContent = 'Editar Memorando';
+                    document.getElementById('memorandoId').value = memorando.id;
+                    document.getElementById('memorandoTitulo').value = memorando.titulo;
+                    document.getElementById('memorandoAssunto').value = memorando.assunto;
+                    document.getElementById('memorandoResponsavel').value = memorando.responsavel;
+                    document.getElementById('memorandoData').value = memorando.data;
+                    document.getElementById('memorandoPrioridade').value = memorando.prioridade || 'media';
+                    document.getElementById('memorandoStatus').value = memorando.status || 'ativo';
+                    document.getElementById('memorandoDescricao').value = memorando.descricao;
+                }
+            }
+            
+            document.getElementById('modalMemorando').classList.remove('hidden');
+            document.getElementById('modalMemorando').classList.add('flex');
+        }
+
+        function fecharModal() {
+            document.getElementById('modalMemorando').classList.add('hidden');
+            document.getElementById('modalMemorando').classList.remove('flex');
+        }
+
+        function salvarMemorando(event) {
+            event.preventDefault();
+            
+            const memorandos = JSON.parse(localStorage.getItem('memorandos')) || [];
+            const id = document.getElementById('memorandoId').value;
+            
+            const memorandoData = {
+                titulo: document.getElementById('memorandoTitulo').value,
+                assunto: document.getElementById('memorandoAssunto').value,
+                responsavel: document.getElementById('memorandoResponsavel').value,
+                data: document.getElementById('memorandoData').value || new Date().toISOString().split('T')[0],
+                prioridade: document.getElementById('memorandoPrioridade').value,
+                status: document.getElementById('memorandoStatus').value,
+                descricao: document.getElementById('memorandoDescricao').value
+            };
+
+            if (id) {
+                // Editar
+                const index = memorandos.findIndex(m => m.id == id);
+                if (index !== -1) {
+                    const oldData = {...memorandos[index]};
+                    memorandos[index] = { ...memorandos[index], ...memorandoData };
+                    localStorage.setItem('memorandos', JSON.stringify(memorandos));
+                    
+                    window.parent.postMessage({
+                        type: 'logModificacao',
+                        data: {
+                            tabela: 'memorandos',
+                            operacao: 'UPDATE',
+                            registro_id: id,
+                            dados_anteriores: oldData,
+                            dados_novos: memorandos[index]
+                        }
+                    }, '*');
+                    
+                    alert('Memorando atualizado com sucesso!');
+                }
+            } else {
+                // Novo
+                const novoId = memorandos.length > 0 ? Math.max(...memorandos.map(m => m.id)) + 1 : 1;
+                const novoMemorando = { id: novoId, ...memorandoData };
+                memorandos.push(novoMemorando);
+                localStorage.setItem('memorandos', JSON.stringify(memorandos));
+                
+                window.parent.postMessage({
+                    type: 'logModificacao',
+                    data: {
+                        tabela: 'memorandos',
+                        operacao: 'INSERT',
+                        registro_id: novoId,
+                        dados_anteriores: null,
+                        dados_novos: novoMemorando
+                    }
+                }, '*');
+                
+                alert('Memorando salvo com sucesso!');
+            }
+
+            fecharModal();
+            carregarTabela();
+        }
+
+        function editarMemorando(id) {
+            abrirModalMemorando(id);
+        }
+
+        function excluirMemorando(id) {
+            if (confirm('Deseja realmente excluir este memorando?')) {
+                const memorandos = JSON.parse(localStorage.getItem('memorandos')) || [];
+                const memorando = memorandos.find(m => m.id === id);
+                const novosMemorandos = memorandos.filter(m => m.id !== id);
+                localStorage.setItem('memorandos', JSON.stringify(novosMemorandos));
+                
+                window.parent.postMessage({
+                    type: 'logModificacao',
+                    data: {
+                        tabela: 'memorandos',
+                        operacao: 'DELETE',
+                        registro_id: id,
+                        dados_anteriores: memorando,
+                        dados_novos: null
+                    }
+                }, '*');
+                
+                alert('Memorando excluído com sucesso!');
+                carregarTabela();
+            }
+        }
+    </script>
+</body>
+</html>

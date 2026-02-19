@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransLog - Usuários do Sistema</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .modal {
+            transition: opacity 0.3s ease;
+        }
+        .modal.hidden {
+            display: none;
+            opacity: 0;
+        }
+        .modal.flex {
+            display: flex;
+            opacity: 1;
+        }
+        table tr:hover {
+            background-color: #f9fafb;
+        }
+        .permission-group {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-semibold">Usuários do Sistema</h3>
+                <button onclick="abrirModalUsuario()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-plus mr-2"></i>Novo Usuário
+                </button>
+            </div>
+            
+            <!-- Busca e Filtros -->
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <input type="text" id="buscaUsuarios" placeholder="Buscar por nome ou usuário..." 
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                        onkeyup="buscarUsuarios()">
+                </div>
+                <div>
+                    <select id="filtroNivel" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500" onchange="buscarUsuarios()">
+                        <option value="">Todos os níveis</option>
+                        <option value="admin">Administrador</option>
+                        <option value="gerente">Gerente</option>
+                        <option value="operador">Operador</option>
+                        <option value="consultor">Consultor</option>
+                    </select>
+                </div>
+                <div>
+                    <select id="filtroStatus" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500" onchange="buscarUsuarios()">
+                        <option value="">Todos os status</option>
+                        <option value="ativo">Ativo</option>
+                        <option value="inativo">Inativo</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Usuário</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome Completo</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nível</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Último Acesso</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaUsuarios" class="divide-y divide-gray-200"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal de Usuário -->
+    <div id="modalUsuario" class="modal hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold" id="modalTitulo">Novo Usuário</h3>
+                <button onclick="fecharModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="formUsuario" onsubmit="salvarUsuario(event)">
+                <input type="hidden" id="usuarioId">
+                
+                <!-- Dados Básicos -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nome Completo*</label>
+                        <input type="text" id="usuarioNome" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Usuário (Login)*</label>
+                        <input type="text" id="usuarioUsername" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email*</label>
+                        <input type="email" id="usuarioEmail" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Senha*</label>
+                        <input type="password" id="usuarioSenha" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Confirmar Senha*</label>
+                        <input type="password" id="usuarioConfirmSenha" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                        <input type="text" id="usuarioTelefone" class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                </div>
+
+                <!-- Nível e Status -->
+                <div class="border-t pt-4 mb-4">
+                    <h4 class="font-medium mb-3">Configurações de Acesso</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nível de Acesso*</label>
+                            <select id="usuarioNivel" required class="w-full px-3 py-2 border rounded-lg" onchange="mudarNivel()">
+                                <option value="operador">Operador</option>
+                                <option value="gerente">Gerente</option>
+                                <option value="admin">Administrador</option>
+                                <option value="consultor">Consultor</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                            <select id="usuarioStatus" class="w-full px-3 py-2 border rounded-lg">
+                                <option value="ativo">Ativo</option>
+                                <option value="inativo">Inativo</option>
+                                <option value="bloqueado">Bloqueado</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
+                            <select id="usuarioDepartamento" class="w-full px-3 py-2 border rounded-lg">
+                                <option value="">Selecione...</option>
+                                <option value="administracao">Administração</option>
+                                <option value="operacional">Operacional</option>
+                                <option value="financeiro">Financeiro</option>
+                                <option value="fiscal">Fiscal</option>
+                                <option value="comercial">Comercial</option>
+                                <option value="rh">Recursos Humanos</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Permissões Específicas -->
+                <div class="border-t pt-4 mb-4">
+                    <h4 class="font-medium mb-3">Permissões Específicas</h4>
+                    
+                    <div class="permission-group">
+                        <h5 class="font-medium text-sm mb-2">Cadastros</h5>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="clientes" class="perm-cadastros"> <span>Clientes</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="fornecedores" class="perm-cadastros"> <span>Fornecedores</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="motoristas" class="perm-cadastros"> <span>Motoristas</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="parceiros" class="perm-cadastros"> <span>Parceiros</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="permission-group">
+                        <h5 class="font-medium text-sm mb-2">Frota</h5>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="veiculos"> <span>Veículos</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="manutencao"> <span>Manutenção</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="combustivel"> <span>Combustível</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="pneus"> <span>Pneus</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="permission-group">
+                        <h5 class="font-medium text-sm mb-2">Transportes</h5>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="cte"> <span>CT-e</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="mdfe"> <span>MDF-e</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="os"> <span>Ordem de Serviço</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="romaneio"> <span>Romaneio</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="permission-group">
+                        <h5 class="font-medium text-sm mb-2">Fiscal</h5>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="nfse"> <span>NFS-e</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="nfe"> <span>NF-e</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="consulta"> <span>Consultas</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="permission-group">
+                        <h5 class="font-medium text-sm mb-2">Financeiro</h5>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="contas_pagar"> <span>Contas a Pagar</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="contas_receber"> <span>Contas a Receber</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="fluxo_caixa"> <span>Fluxo de Caixa</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="relatorios"> <span>Relatórios</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="permission-group">
+                        <h5 class="font-medium text-sm mb-2">Administrativo</h5>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="usuarios"> <span>Gerenciar Usuários</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="logs"> <span>Visualizar Logs</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="backup"> <span>Backup</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="configuracoes"> <span>Configurações</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Observações -->
+                <div class="border-t pt-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Observações</label>
+                    <textarea id="usuarioObservacoes" rows="3" class="w-full px-3 py-2 border rounded-lg"></textarea>
+                </div>
+
+                <div class="flex justify-end space-x-4 mt-6">
+                    <button type="button" onclick="fecharModal()" class="px-6 py-2 border rounded-lg hover:bg-gray-50">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Logs -->
+    <div id="modalLogs" class="modal hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold" id="logsTitulo">Logs do Usuário</h3>
+                <button onclick="fecharModalLogs()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="mb-4">
+                <div class="flex space-x-4 border-b">
+                    <button class="tab-log active px-4 py-2 text-sm font-medium text-blue-600 border-b-2 border-blue-600" onclick="mudarAbaLog('acessos')">Acessos</button>
+                    <button class="tab-log px-4 py-2 text-sm font-medium text-gray-600" onclick="mudarAbaLog('modificacoes')">Modificações</button>
+                </div>
+            </div>
+
+            <div id="logs-acessos" class="tab-log-content">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-2 text-left">Data/Hora</th>
+                            <th class="px-4 py-2 text-left">Tipo</th>
+                            <th class="px-4 py-2 text-left">Descrição</th>
+                            <th class="px-4 py-2 text-left">IP</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaLogsAcessos"></tbody>
+                </table>
+            </div>
+
+            <div id="logs-modificacoes" class="tab-log-content hidden">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-2 text-left">Data/Hora</th>
+                            <th class="px-4 py-2 text-left">Tabela</th>
+                            <th class="px-4 py-2 text-left">Operação</th>
+                            <th class="px-4 py-2 text-left">Registro</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaLogsModificacoes"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dados iniciais
+        let usuarios = JSON.parse(localStorage.getItem('usuarios')) || [
+            { 
+                id: 1, 
+                username: 'admin', 
+                nome: 'Administrador', 
+                email: 'admin@translog.com', 
+                senha: 'admin', 
+                nivel: 'admin',
+                departamento: 'administracao',
+                telefone: '(11) 99999-9999',
+                status: 'ativo',
+                permissoes: ['todos'],
+                data_criacao: '2024-01-01',
+                ultimo_acesso: '2024-02-18 08:30'
+            },
+            { 
+                id: 2, 
+                username: 'gerente', 
+                nome: 'Gerente Geral', 
+                email: 'gerente@translog.com', 
+                senha: '123456', 
+                nivel: 'gerente',
+                departamento: 'operacional',
+                telefone: '(11) 98888-8888',
+                status: 'ativo',
+                permissoes: ['clientes', 'fornecedores', 'motoristas', 'veiculos', 'cte', 'mdfe'],
+                data_criacao: '2024-01-15',
+                ultimo_acesso: '2024-02-17 14:20'
+            },
+            { 
+                id: 3, 
+                username: 'operador', 
+                nome: 'Operador Logística', 
+                email: 'operador@translog.com', 
+                senha: '123456', 
+                nivel: 'operador',
+                departamento: 'operacional',
+                telefone: '(11) 97777-7777',
+                status: 'ativo',
+                permissoes: ['os', 'romaneio', 'cte'],
+                data_criacao: '2024-02-01',
+                ultimo_acesso: '2024-02-18 09:15'
+            }
+        ];
+
+        let logsAcesso = JSON.parse(localStorage.getItem('logsAcesso')) || [
+            { id: 1, usuario_id: 1, usuario_nome: 'Administrador', tipo: 'login', descricao: 'Login realizado', data: '2024-02-18T08:30:00', ip: '192.168.1.100' },
+            { id: 2, usuario_id: 3, usuario_nome: 'Operador', tipo: 'login', descricao: 'Login realizado', data: '2024-02-18T09:15:00', ip: '192.168.1.101' },
+            { id: 3, usuario_id: 2, usuario_nome: 'Gerente', tipo: 'login', descricao: 'Login realizado', data: '2024-02-17T14:20:00', ip: '192.168.1.102' }
+        ];
+
+        let logsModificacao = JSON.parse(localStorage.getItem('logsModificacao')) || [
+            { id: 1, usuario_id: 1, usuario_nome: 'Administrador', tabela: 'clientes', operacao: 'INSERT', registro_id: 5, data: '2024-02-18T10:00:00' },
+            { id: 2, usuario_id: 2, usuario_nome: 'Gerente', tabela: 'ordensServico', operacao: 'UPDATE', registro_id: 3, data: '2024-02-17T15:30:00' }
+        ];
+
+        if (!localStorage.getItem('usuarios')) {
+            localStorage.setItem('usuarios', JSON.stringify(usuarios));
+        }
+        if (!localStorage.getItem('logsAcesso')) {
+            localStorage.setItem('logsAcesso', JSON.stringify(logsAcesso));
+        }
+        if (!localStorage.getItem('logsModificacao')) {
+            localStorage.setItem('logsModificacao', JSON.stringify(logsModificacao));
+        }
+
+        let usuarioVisualizandoLogs = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarTabela();
+        });
+
+        function carregarTabela() {
+            const usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+            const tbody = document.getElementById('tabelaUsuarios');
+            
+            if (usuarios.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">Nenhum usuário cadastrado</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = usuarios.map(u => {
+                const nivelClass = {
+                    'admin': 'bg-purple-100 text-purple-800',
+                    'gerente': 'bg-blue-100 text-blue-800',
+                    'operador': 'bg-green-100 text-green-800',
+                    'consultor': 'bg-yellow-100 text-yellow-800'
+                };
+
+                const statusClass = {
+                    'ativo': 'bg-green-100 text-green-800',
+                    'inativo': 'bg-red-100 text-red-800',
+                    'bloqueado': 'bg-orange-100 text-orange-800'
+                };
+
+                return `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${u.id}</td>
+                    <td class="px-6 py-4 font-medium">${u.username}</td>
+                    <td class="px-6 py-4">${u.nome}</td>
+                    <td class="px-6 py-4">${u.email || '-'}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full ${nivelClass[u.nivel]}">
+                            ${u.nivel}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">${u.ultimo_acesso || '-'}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full ${statusClass[u.status]}">
+                            ${u.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarUsuario(${u.id})" class="text-blue-600 hover:text-blue-800 mr-3" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="verLogs(${u.id})" class="text-green-600 hover:text-green-800 mr-3" title="Ver Logs">
+                            <i class="fas fa-history"></i>
+                        </button>
+                        ${u.id !== 1 ? `
+                            <button onclick="toggleStatus(${u.id})" class="text-${u.status === 'ativo' ? 'orange' : 'green'}-600 hover:text-${u.status === 'ativo' ? 'orange' : 'green'}-800 mr-3" title="${u.status === 'ativo' ? 'Bloquear' : 'Ativar'}">
+                                <i class="fas fa-${u.status === 'ativo' ? 'lock' : 'unlock'}"></i>
+                            </button>
+                            <button onclick="excluirUsuario(${u.id})" class="text-red-600 hover:text-red-800" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        ` : ''}
+                    </td>
+                </tr>
+            `}).join('');
+        }
+
+        function buscarUsuarios() {
+            const termo = document.getElementById('buscaUsuarios').value.toLowerCase();
+            const nivel = document.getElementById('filtroNivel').value;
+            const status = document.getElementById('filtroStatus').value;
+            
+            let usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+            
+            // Filtrar por termo
+            if (termo) {
+                usuarios = usuarios.filter(u => 
+                    u.nome.toLowerCase().includes(termo) ||
+                    u.username.toLowerCase().includes(termo) ||
+                    (u.email && u.email.toLowerCase().includes(termo))
+                );
+            }
+            
+            // Filtrar por nível
+            if (nivel) {
+                usuarios = usuarios.filter(u => u.nivel === nivel);
+            }
+            
+            // Filtrar por status
+            if (status) {
+                usuarios = usuarios.filter(u => u.status === status);
+            }
+            
+            const tbody = document.getElementById('tabelaUsuarios');
+            
+            if (usuarios.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">Nenhum usuário encontrado</td></tr>';
+                return;
+            }
+
+            const nivelClass = {
+                'admin': 'bg-purple-100 text-purple-800',
+                'gerente': 'bg-blue-100 text-blue-800',
+                'operador': 'bg-green-100 text-green-800',
+                'consultor': 'bg-yellow-100 text-yellow-800'
+            };
+
+            const statusClass = {
+                'ativo': 'bg-green-100 text-green-800',
+                'inativo': 'bg-red-100 text-red-800',
+                'bloqueado': 'bg-orange-100 text-orange-800'
+            };
+
+            tbody.innerHTML = usuarios.map(u => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${u.id}</td>
+                    <td class="px-6 py-4 font-medium">${u.username}</td>
+                    <td class="px-6 py-4">${u.nome}</td>
+                    <td class="px-6 py-4">${u.email || '-'}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full ${nivelClass[u.nivel]}">
+                            ${u.nivel}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">${u.ultimo_acesso || '-'}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full ${statusClass[u.status]}">
+                            ${u.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarUsuario(${u.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="verLogs(${u.id})" class="text-green-600 hover:text-green-800 mr-3">
+                            <i class="fas fa-history"></i>
+                        </button>
+                        ${u.id !== 1 ? `
+                            <button onclick="toggleStatus(${u.id})" class="text-${u.status === 'ativo' ? 'orange' : 'green'}-600 hover:text-${u.status === 'ativo' ? 'orange' : 'green'}-800 mr-3">
+                                <i class="fas fa-${u.status === 'ativo' ? 'lock' : 'unlock'}"></i>
+                            </button>
+                            <button onclick="excluirUsuario(${u.id})" class="text-red-600 hover:text-red-800">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        ` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function abrirModalUsuario(id = null) {
+            document.getElementById('formUsuario').reset();
+            document.getElementById('usuarioId').value = '';
+            document.getElementById('modalTitulo').textContent = 'Novo Usuário';
+            
+            if (id) {
+                const usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+                const usuario = usuarios.find(u => u.id === id);
+                if (usuario) {
+                    document.getElementById('modalTitulo').textContent = 'Editar Usuário';
+                    document.getElementById('usuarioId').value = usuario.id;
+                    document.getElementById('usuarioNome').value = usuario.nome;
+                    document.getElementById('usuarioUsername').value = usuario.username;
+                    document.getElementById('usuarioEmail').value = usuario.email || '';
+                    document.getElementById('usuarioTelefone').value = usuario.telefone || '';
+                    document.getElementById('usuarioNivel').value = usuario.nivel;
+                    document.getElementById('usuarioStatus').value = usuario.status || 'ativo';
+                    document.getElementById('usuarioDepartamento').value = usuario.departamento || '';
+                    document.getElementById('usuarioObservacoes').value = usuario.observacoes || '';
+                    
+                    // Desabilitar campo de senha na edição
+                    document.getElementById('usuarioSenha').required = false;
+                    document.getElementById('usuarioConfirmSenha').required = false;
+                    
+                    // Marcar permissões
+                    if (usuario.permissoes && usuario.permissoes.length > 0) {
+                        document.querySelectorAll('input[type=checkbox]').forEach(cb => {
+                            if (usuario.permissoes.includes(cb.value) || usuario.permissoes.includes('todos')) {
+                                cb.checked = true;
+                            }
+                        });
+                    }
+                    
+                    // Se for admin, marcar todos
+                    if (usuario.nivel === 'admin') {
+                        document.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = true);
+                    }
+                }
+            } else {
+                // Habilitar campo de senha
+                document.getElementById('usuarioSenha').required = true;
+                document.getElementById('usuarioConfirmSenha').required = true;
+            }
+            
+            document.getElementById('modalUsuario').classList.remove('hidden');
+            document.getElementById('modalUsuario').classList.add('flex');
+        }
+
+        function fecharModal() {
+            document.getElementById('modalUsuario').classList.add('hidden');
+            document.getElementById('modalUsuario').classList.remove('flex');
+        }
+
+        function mudarNivel() {
+            const nivel = document.getElementById('usuarioNivel').value;
+            if (nivel === 'admin') {
+                document.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = true);
+            }
+        }
+
+        function salvarUsuario(event) {
+            event.preventDefault();
+            
+            // Validar senha
+            const senha = document.getElementById('usuarioSenha').value;
+            const confirmSenha = document.getElementById('usuarioConfirmSenha').value;
+            
+            if (senha && senha !== confirmSenha) {
+                alert('As senhas não conferem!');
+                return;
+            }
+            
+            const usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+            const id = document.getElementById('usuarioId').value;
+            
+            // Coletar permissões
+            const permissoes = [];
+            document.querySelectorAll('input[type=checkbox]:checked').forEach(cb => {
+                permissoes.push(cb.value);
+            });
+            
+            const usuarioData = {
+                username: document.getElementById('usuarioUsername').value,
+                nome: document.getElementById('usuarioNome').value,
+                email: document.getElementById('usuarioEmail').value,
+                telefone: document.getElementById('usuarioTelefone').value,
+                nivel: document.getElementById('usuarioNivel').value,
+                status: document.getElementById('usuarioStatus').value,
+                departamento: document.getElementById('usuarioDepartamento').value,
+                permissoes: permissoes,
+                observacoes: document.getElementById('usuarioObservacoes').value,
+                data_atualizacao: new Date().toISOString()
+            };
+
+            if (senha) {
+                usuarioData.senha = senha;
+            }
+
+            if (id) {
+                // Editar
+                const index = usuarios.findIndex(u => u.id == id);
+                if (index !== -1) {
+                    const oldData = {...usuarios[index]};
+                    usuarios[index] = { ...usuarios[index], ...usuarioData };
+                    localStorage.setItem('usuarios', JSON.stringify(usuarios));
+                    
+                    window.parent.postMessage({
+                        type: 'logModificacao',
+                        data: {
+                            tabela: 'usuarios',
+                            operacao: 'UPDATE',
+                            registro_id: id,
+                            dados_anteriores: oldData,
+                            dados_novos: usuarios[index]
+                        }
+                    }, '*');
+                    
+                    alert('Usuário atualizado com sucesso!');
+                }
+            } else {
+                // Novo
+                const novoId = usuarios.length > 0 ? Math.max(...usuarios.map(u => u.id)) + 1 : 1;
+                const novoUsuario = { 
+                    id: novoId, 
+                    ...usuarioData, 
+                    senha: senha || '123456',
+                    data_criacao: new Date().toISOString(),
+                    ultimo_acesso: null 
+                };
+                usuarios.push(novoUsuario);
+                localStorage.setItem('usuarios', JSON.stringify(usuarios));
+                
+                window.parent.postMessage({
+                    type: 'logModificacao',
+                    data: {
+                        tabela: 'usuarios',
+                        operacao: 'INSERT',
+                        registro_id: novoId,
+                        dados_anteriores: null,
+                        dados_novos: novoUsuario
+                    }
+                }, '*');
+                
+                alert('Usuário salvo com sucesso!');
+            }
+
+            fecharModal();
+            carregarTabela();
+        }
+
+        function editarUsuario(id) {
+            abrirModalUsuario(id);
+        }
+
+        function toggleStatus(id) {
+            const usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+            const index = usuarios.findIndex(u => u.id === id);
+            
+            if (index !== -1) {
+                const oldStatus = usuarios[index].status;
+                usuarios[index].status = usuarios[index].status === 'ativo' ? 'bloqueado' : 'ativo';
+                localStorage.setItem('usuarios', JSON.stringify(usuarios));
+                
+                window.parent.postMessage({
+                    type: 'logModificacao',
+                    data: {
+                        tabela: 'usuarios',
+                        operacao: 'UPDATE',
+                        registro_id: id,
+                        dados_anteriores: { status: oldStatus },
+                        dados_novos: { status: usuarios[index].status }
+                    }
+                }, '*');
+                
+                alert(`Usuário ${usuarios[index].status === 'ativo' ? 'ativado' : 'bloqueado'} com sucesso!`);
+                carregarTabela();
+            }
+        }
+
+        function excluirUsuario(id) {
+            if (id === 1) {
+                alert('Não é possível excluir o usuário administrador padrão!');
+                return;
+            }
+            
+            if (confirm('Deseja realmente excluir este usuário?')) {
+                const usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+                const usuario = usuarios.find(u => u.id === id);
+                const novosUsuarios = usuarios.filter(u => u.id !== id);
+                localStorage.setItem('usuarios', JSON.stringify(novosUsuarios));
+                
+                window.parent.postMessage({
+                    type: 'logModificacao',
+                    data: {
+                        tabela: 'usuarios',
+                        operacao: 'DELETE',
+                        registro_id: id,
+                        dados_anteriores: usuario,
+                        dados_novos: null
+                    }
+                }, '*');
+                
+                alert('Usuário excluído com sucesso!');
+                carregarTabela();
+            }
+        }
+
+        function verLogs(id) {
+            usuarioVisualizandoLogs = id;
+            const usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+            const usuario = usuarios.find(u => u.id === id);
+            
+            document.getElementById('logsTitulo').textContent = `Logs de ${usuario?.nome || 'Usuário'}`;
+            
+            // Carregar logs de acesso
+            const logsAcesso = JSON.parse(localStorage.getItem('logsAcesso')) || [];
+            const logsUsuario = logsAcesso.filter(l => l.usuario_id === id).slice(-20).reverse();
+            
+            const tbodyAcessos = document.getElementById('tabelaLogsAcessos');
+            if (logsUsuario.length === 0) {
+                tbodyAcessos.innerHTML = '<tr><td colspan="4" class="px-4 py-4 text-center text-gray-500">Nenhum log de acesso encontrado</td></tr>';
+            } else {
+                tbodyAcessos.innerHTML = logsUsuario.map(log => `
+                    <tr class="border-b">
+                        <td class="px-4 py-2">${new Date(log.data).toLocaleString('pt-BR')}</td>
+                        <td class="px-4 py-2">
+                            <span class="px-2 py-1 text-xs rounded-full ${log.tipo === 'login' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                ${log.tipo}
+                            </span>
+                        </td>
+                        <td class="px-4 py-2">${log.descricao}</td>
+                        <td class="px-4 py-2">${log.ip || '127.0.0.1'}</td>
+                    </tr>
+                `).join('');
+            }
+            
+            // Carregar logs de modificação
+            const logsMod = JSON.parse(localStorage.getItem('logsModificacao')) || [];
+            const logsModUsuario = logsMod.filter(l => l.usuario_id === id).slice(-20).reverse();
+            
+            const tbodyMod = document.getElementById('tabelaLogsModificacoes');
+            if (logsModUsuario.length === 0) {
+                tbodyMod.innerHTML = '<tr><td colspan="4" class="px-4 py-4 text-center text-gray-500">Nenhuma modificação encontrada</td></tr>';
+            } else {
+                tbodyMod.innerHTML = logsModUsuario.map(log => {
+                    const operacaoClass = {
+                        'INSERT': 'bg-green-100 text-green-800',
+                        'UPDATE': 'bg-blue-100 text-blue-800',
+                        'DELETE': 'bg-red-100 text-red-800'
+                    };
+                    
+                    return `
+                    <tr class="border-b">
+                        <td class="px-4 py-2">${new Date(log.data).toLocaleString('pt-BR')}</td>
+                        <td class="px-4 py-2">${log.tabela}</td>
+                        <td class="px-4 py-2">
+                            <span class="px-2 py-1 text-xs rounded-full ${operacaoClass[log.operacao]}">
+                                ${log.operacao}
+                            </span>
+                        </td>
+                        <td class="px-4 py-2">ID: ${log.registro_id}</td>
+                    </tr>
+                `}).join('');
+            }
+            
+            document.getElementById('modalLogs').classList.remove('hidden');
+            document.getElementById('modalLogs').classList.add('flex');
+        }
+
+        function fecharModalLogs() {
+            document.getElementById('modalLogs').classList.add('hidden');
+            document.getElementById('modalLogs').classList.remove('flex');
+        }
+
+        function mudarAbaLog(aba) {
+            document.querySelectorAll('.tab-log').forEach(btn => {
+                btn.classList.remove('text-blue-600', 'border-blue-600');
+                btn.classList.add('text-gray-600');
+            });
+            event.target.classList.add('text-blue-600', 'border-blue-600');
+            
+            document.querySelectorAll('.tab-log-content').forEach(content => content.classList.add('hidden'));
+            document.getElementById(`logs-${aba}`).classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

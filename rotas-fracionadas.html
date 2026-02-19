@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransLog - Rotas Fracionadas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .modal {
+            transition: opacity 0.3s ease;
+        }
+        .modal.hidden {
+            display: none;
+            opacity: 0;
+        }
+        .modal.flex {
+            display: flex;
+            opacity: 1;
+        }
+        table tr:hover {
+            background-color: #f9fafb;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-semibold">Rotas Fracionadas</h3>
+                <button onclick="abrirModalRotaFracionada()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-plus mr-2"></i>Nova Rota Fracionada
+                </button>
+            </div>
+            
+            <!-- Busca -->
+            <div class="mt-4">
+                <input type="text" id="buscaRotasFrac" placeholder="Buscar por código, origem ou destino..." 
+                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                    onkeyup="buscarRotasFracionadas()">
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Origem</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Destino</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Distância (km)</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trechos</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaRotasFrac" class="divide-y divide-gray-200"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal de Rota Fracionada -->
+    <div id="modalRotaFrac" class="modal hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold" id="modalTitulo">Nova Rota Fracionada</h3>
+                <button onclick="fecharModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="formRotaFrac" onsubmit="salvarRotaFracionada(event)">
+                <input type="hidden" id="rotaFracId">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Código da Rota*</label>
+                        <input type="text" id="rotaFracCodigo" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Rota Principal</label>
+                        <select id="rotaFracPrincipal" class="w-full px-3 py-2 border rounded-lg">
+                            <option value="">Selecione...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Origem*</label>
+                        <input type="text" id="rotaFracOrigem" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Destino*</label>
+                        <input type="text" id="rotaFracDestino" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Distância (km)*</label>
+                        <input type="number" step="0.1" id="rotaFracDistancia" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tempo Estimado (horas)</label>
+                        <input type="number" step="0.5" id="rotaFracTempo" class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Ordem do Trecho</label>
+                        <input type="number" id="rotaFracOrdem" class="w-full px-3 py-2 border rounded-lg" placeholder="1, 2, 3...">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <select id="rotaFracStatus" class="w-full px-3 py-2 border rounded-lg">
+                            <option value="ativa">Ativa</option>
+                            <option value="inativa">Inativa</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mt-6 border-t pt-4">
+                    <h4 class="font-medium mb-3">Trechos da Rota</h4>
+                    <div id="trechos-container">
+                        <!-- Trechos serão adicionados aqui via JavaScript -->
+                    </div>
+                    <button type="button" onclick="adicionarTrecho()" class="mt-2 text-blue-600 hover:text-blue-800">
+                        <i class="fas fa-plus mr-1"></i>Adicionar Trecho
+                    </button>
+                </div>
+                
+                <div class="mt-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Observações</label>
+                    <textarea id="rotaFracObservacoes" rows="3" class="w-full px-3 py-2 border rounded-lg"></textarea>
+                </div>
+                
+                <div class="flex justify-end space-x-4 mt-6">
+                    <button type="button" onclick="fecharModal()" class="px-6 py-2 border rounded-lg hover:bg-gray-50">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Dados iniciais
+        let rotasFracionadas = JSON.parse(localStorage.getItem('rotasFracionadas')) || [
+            { id: 1, codigo: 'SP-RJ-FRAC-001', origem: 'São Paulo, SP', destino: 'Rio de Janeiro, RJ', distancia: 430, tempo: 6.5, ordem: 1, status: 'ativa' },
+            { id: 2, codigo: 'SP-MG-FRAC-001', origem: 'São Paulo, SP', destino: 'Belo Horizonte, MG', distancia: 586, tempo: 8, ordem: 2, status: 'ativa' }
+        ];
+
+        if (!localStorage.getItem('rotasFracionadas')) {
+            localStorage.setItem('rotasFracionadas', JSON.stringify(rotasFracionadas));
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarTabela();
+            carregarRotasPrincipais();
+        });
+
+        function carregarTabela() {
+            rotasFracionadas = JSON.parse(localStorage.getItem('rotasFracionadas')) || [];
+            const tbody = document.getElementById('tabelaRotasFrac');
+            
+            if (rotasFracionadas.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">Nenhuma rota fracionada cadastrada</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = rotasFracionadas.map(r => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${r.id}</td>
+                    <td class="px-6 py-4 font-medium">${r.codigo}</td>
+                    <td class="px-6 py-4">${r.origem}</td>
+                    <td class="px-6 py-4">${r.destino}</td>
+                    <td class="px-6 py-4">${r.distancia} km</td>
+                    <td class="px-6 py-4">${r.ordem || '-'}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full ${r.status === 'ativa' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                            ${r.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarRotaFracionada(${r.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="excluirRotaFracionada(${r.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function buscarRotasFracionadas() {
+            const termo = document.getElementById('buscaRotasFrac').value.toLowerCase();
+            const rotas = JSON.parse(localStorage.getItem('rotasFracionadas')) || [];
+            
+            const resultados = rotas.filter(r => 
+                r.codigo.toLowerCase().includes(termo) ||
+                r.origem.toLowerCase().includes(termo) ||
+                r.destino.toLowerCase().includes(termo)
+            );
+            
+            const tbody = document.getElementById('tabelaRotasFrac');
+            if (resultados.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">Nenhuma rota encontrada</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = resultados.map(r => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${r.id}</td>
+                    <td class="px-6 py-4 font-medium">${r.codigo}</td>
+                    <td class="px-6 py-4">${r.origem}</td>
+                    <td class="px-6 py-4">${r.destino}</td>
+                    <td class="px-6 py-4">${r.distancia} km</td>
+                    <td class="px-6 py-4">${r.ordem || '-'}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full ${r.status === 'ativa' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                            ${r.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarRotaFracionada(${r.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="excluirRotaFracionada(${r.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function carregarRotasPrincipais() {
+            const rotas = JSON.parse(localStorage.getItem('rotas')) || [];
+            const select = document.getElementById('rotaFracPrincipal');
+            
+            rotas.forEach(rota => {
+                const option = document.createElement('option');
+                option.value = rota.id;
+                option.textContent = `${rota.codigo} - ${rota.origem} → ${rota.destino}`;
+                select.appendChild(option);
+            });
+        }
+
+        function adicionarTrecho() {
+            const container = document.getElementById('trechos-container');
+            const trechoId = Date.now();
+            
+            const trechoHtml = `
+                <div id="trecho-${trechoId}" class="grid grid-cols-1 md:grid-cols-5 gap-2 mb-2 p-2 bg-gray-50 rounded">
+                    <input type="text" placeholder="Origem" class="trecho-origem px-2 py-1 border rounded">
+                    <input type="text" placeholder="Destino" class="trecho-destino px-2 py-1 border rounded">
+                    <input type="number" placeholder="Distância (km)" class="trecho-distancia px-2 py-1 border rounded">
+                    <input type="number" placeholder="Tempo (h)" class="trecho-tempo px-2 py-1 border rounded">
+                    <button type="button" onclick="removerTrecho(${trechoId})" class="text-red-600 hover:text-red-800">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', trechoHtml);
+        }
+
+        function removerTrecho(id) {
+            document.getElementById(`trecho-${id}`).remove();
+        }
+
+        function abrirModalRotaFracionada(id = null) {
+            document.getElementById('formRotaFrac').reset();
+            document.getElementById('rotaFracId').value = '';
+            document.getElementById('modalTitulo').textContent = 'Nova Rota Fracionada';
+            
+            if (id) {
+                const rotas = JSON.parse(localStorage.getItem('rotasFracionadas')) || [];
+                const rota = rotas.find(r => r.id === id);
+                if (rota) {
+                    document.getElementById('modalTitulo').textContent = 'Editar Rota Fracionada';
+                    document.getElementById('rotaFracId').value = rota.id;
+                    document.getElementById('rotaFracCodigo').value = rota.codigo;
+                    document.getElementById('rotaFracOrigem').value = rota.origem;
+                    document.getElementById('rotaFracDestino').value = rota.destino;
+                    document.getElementById('rotaFracDistancia').value = rota.distancia;
+                    document.getElementById('rotaFracTempo').value = rota.tempo || '';
+                    document.getElementById('rotaFracOrdem').value = rota.ordem || '';
+                    document.getElementById('rotaFracStatus').value = rota.status || 'ativa';
+                    document.getElementById('rotaFracObservacoes').value = rota.observacoes || '';
+                }
+            }
+            
+            document.getElementById('modalRotaFrac').classList.remove('hidden');
+            document.getElementById('modalRotaFrac').classList.add('flex');
+        }
+
+        function fecharModal() {
+            document.getElementById('modalRotaFrac').classList.add('hidden');
+            document.getElementById('modalRotaFrac').classList.remove('flex');
+        }
+
+        function salvarRotaFracionada(event) {
+            event.preventDefault();
+            
+            const rotas = JSON.parse(localStorage.getItem('rotasFracionadas')) || [];
+            const id = document.getElementById('rotaFracId').value;
+            
+            const rotaData = {
+                codigo: document.getElementById('rotaFracCodigo').value,
+                origem: document.getElementById('rotaFracOrigem').value,
+                destino: document.getElementById('rotaFracDestino').value,
+                distancia: parseFloat(document.getElementById('rotaFracDistancia').value),
+                tempo: parseFloat(document.getElementById('rotaFracTempo').value) || null,
+                ordem: parseInt(document.getElementById('rotaFracOrdem').value) || null,
+                status: document.getElementById('rotaFracStatus').value,
+                observacoes: document.getElementById('rotaFracObservacoes').value
+            };
+
+            if (id) {
+                // Editar
+                const index = rotas.findIndex(r => r.id == id);
+                if (index !== -1) {
+                    const oldData = {...rotas[index]};
+                    rotas[index] = { ...rotas[index], ...rotaData };
+                    localStorage.setItem('rotasFracionadas', JSON.stringify(rotas));
+                    
+                    window.parent.postMessage({
+                        type: 'logModificacao',
+                        data: {
+                            tabela: 'rotasFracionadas',
+                            operacao: 'UPDATE',
+                            registro_id: id,
+                            dados_anteriores: oldData,
+                            dados_novos: rotas[index]
+                        }
+                    }, '*');
+                    
+                    alert('Rota fracionada atualizada com sucesso!');
+                }
+            } else {
+                // Novo
+                const novoId = rotas.length > 0 ? Math.max(...rotas.map(r => r.id)) + 1 : 1;
+                const novaRota = { id: novoId, ...rotaData };
+                rotas.push(novaRota);
+                localStorage.setItem('rotasFracionadas', JSON.stringify(rotas));
+                
+                window.parent.postMessage({
+                    type: 'logModificacao',
+                    data: {
+                        tabela: 'rotasFracionadas',
+                        operacao: 'INSERT',
+                        registro_id: novoId,
+                        dados_anteriores: null,
+                        dados_novos: novaRota
+                    }
+                }, '*');
+                
+                alert('Rota fracionada salva com sucesso!');
+            }
+
+            fecharModal();
+            carregarTabela();
+        }
+
+        function editarRotaFracionada(id) {
+            abrirModalRotaFracionada(id);
+        }
+
+        function excluirRotaFracionada(id) {
+            if (confirm('Deseja realmente excluir esta rota?')) {
+                const rotas = JSON.parse(localStorage.getItem('rotasFracionadas')) || [];
+                const rota = rotas.find(r => r.id === id);
+                const novasRotas = rotas.filter(r => r.id !== id);
+                localStorage.setItem('rotasFracionadas', JSON.stringify(novasRotas));
+                
+                window.parent.postMessage({
+                    type: 'logModificacao',
+                    data: {
+                        tabela: 'rotasFracionadas',
+                        operacao: 'DELETE',
+                        registro_id: id,
+                        dados_anteriores: rota,
+                        dados_novos: null
+                    }
+                }, '*');
+                
+                alert('Rota excluída com sucesso!');
+                carregarTabela();
+            }
+        }
+    </script>
+</body>
+</html>

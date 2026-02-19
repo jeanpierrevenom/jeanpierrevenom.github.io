@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransLog - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .dashboard-card {
+            transition: transform 0.2s;
+        }
+        .dashboard-card:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="space-y-6">
+        <!-- Cards de Resumo -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="dashboard-card bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500">Clientes</p>
+                        <h3 class="text-2xl font-bold" id="totalClientes">0</h3>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-users text-blue-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="dashboard-card bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500">Fornecedores</p>
+                        <h3 class="text-2xl font-bold" id="totalFornecedores">0</h3>
+                    </div>
+                    <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-truck text-green-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="dashboard-card bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500">Motoristas</p>
+                        <h3 class="text-2xl font-bold" id="totalMotoristas">0</h3>
+                    </div>
+                    <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-id-card text-purple-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="dashboard-card bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500">Usuários</p>
+                        <h3 class="text-2xl font-bold" id="totalUsuarios">0</h3>
+                    </div>
+                    <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-user-cog text-yellow-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botão de Teste -->
+        <div class="text-center">
+            <button onclick="testarSistema()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                <i class="fas fa-play mr-2"></i>Testar Sistema
+            </button>
+            <div id="testResult" class="mt-4 hidden">
+                <div class="bg-green-100 text-green-700 p-4 rounded-lg inline-block">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    TESTE OKAY! ✓ - Sistema funcionando corretamente
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function atualizarContadores() {
+            const clientes = JSON.parse(localStorage.getItem('clientes')) || [];
+            const fornecedores = JSON.parse(localStorage.getItem('fornecedores')) || [];
+            const motoristas = JSON.parse(localStorage.getItem('motoristas')) || [];
+            const usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+
+            document.getElementById('totalClientes').textContent = clientes.length;
+            document.getElementById('totalFornecedores').textContent = fornecedores.length;
+            document.getElementById('totalMotoristas').textContent = motoristas.length;
+            document.getElementById('totalUsuarios').textContent = usuarios.length;
+        }
+
+        function testarSistema() {
+            const testResult = document.getElementById('testResult');
+            testResult.classList.remove('hidden');
+            setTimeout(() => testResult.classList.add('hidden'), 3000);
+            
+            window.parent.postMessage({
+                type: 'teste',
+                data: { mensagem: 'TESTE OKAY!' }
+            }, '*');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            atualizarContadores();
+            setInterval(atualizarContadores, 3000);
+        });
+    </script>
+</body>
+</html>

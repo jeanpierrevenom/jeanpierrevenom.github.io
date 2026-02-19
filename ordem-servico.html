@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransLog - Ordem de Serviço</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .modal {
+            transition: opacity 0.3s ease;
+        }
+        .modal.hidden {
+            display: none;
+            opacity: 0;
+        }
+        .modal.flex {
+            display: flex;
+            opacity: 1;
+        }
+        table tr:hover {
+            background-color: #f9fafb;
+        }
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-semibold">Ordens de Serviço</h3>
+                <button onclick="abrirModalOS()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-plus mr-2"></i>Nova OS
+                </button>
+            </div>
+            
+            <!-- Filtros -->
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <input type="text" id="buscaOS" placeholder="Número da OS ou cliente..." 
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                        onkeyup="buscarOS()">
+                </div>
+                <div>
+                    <select id="filtroStatus" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500" onchange="filtrarOS()">
+                        <option value="">Todos os status</option>
+                        <option value="aberta">Aberta</option>
+                        <option value="em_andamento">Em Andamento</option>
+                        <option value="concluida">Concluída</option>
+                        <option value="cancelada">Cancelada</option>
+                    </select>
+                </div>
+                <div>
+                    <input type="date" id="filtroDataInicio" class="w-full px-4 py-2 border rounded-lg" placeholder="Data inicial" onchange="filtrarOS()">
+                </div>
+                <div>
+                    <input type="date" id="filtroDataFim" class="w-full px-4 py-2 border rounded-lg" placeholder="Data final" onchange="filtrarOS()">
+                </div>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nº OS</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Veículo</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Motorista</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Origem</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Destino</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaOS" class="divide-y divide-gray-200"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal de Ordem de Serviço -->
+    <div id="modalOS" class="modal hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold" id="modalTitulo">Nova Ordem de Serviço</h3>
+                <button onclick="fecharModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="formOS" onsubmit="salvarOS(event)">
+                <input type="hidden" id="osId">
+                
+                <!-- Dados Principais -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nº OS*</label>
+                        <input type="text" id="osNumero" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Data Emissão*</label>
+                        <input type="date" id="osData" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <select id="osStatus" class="w-full px-3 py-2 border rounded-lg">
+                            <option value="aberta">Aberta</option>
+                            <option value="em_andamento">Em Andamento</option>
+                            <option value="concluida">Concluída</option>
+                            <option value="cancelada">Cancelada</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Cliente e Contato -->
+                <div class="border-t pt-4 mb-4">
+                    <h4 class="font-medium mb-3">Dados do Cliente</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Cliente*</label>
+                            <select id="osCliente" required class="w-full px-3 py-2 border rounded-lg" onchange="carregarDadosCliente()">
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Contato</label>
+                            <input type="text" id="osContato" class="w-full px-3 py-2 border rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                            <input type="text" id="osTelefone" class="w-full px-3 py-2 border rounded-lg">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transporte -->
+                <div class="border-t pt-4 mb-4">
+                    <h4 class="font-medium mb-3">Dados do Transporte</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Operação*</label>
+                            <select id="osTipo" required class="w-full px-3 py-2 border rounded-lg">
+                                <option value="coleta">Coleta</option>
+                                <option value="entrega">Entrega</option>
+                                <option value="transferencia">Transferência</option>
+                                <option value="redespacho">Redespacho</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Veículo*</label>
+                            <select id="osVeiculo" required class="w-full px-3 py-2 border rounded-lg">
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Motorista*</label>
+                            <select id="osMotorista" required class="w-full px-3 py-2 border rounded-lg">
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Rota</label>
+                            <select id="osRota" class="w-full px-3 py-2 border rounded-lg">
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Origem e Destino -->
+                <div class="border-t pt-4 mb-4">
+                    <h4 class="font-medium mb-3">Origem e Destino</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Origem*</label>
+                            <input type="text" id="osOrigem" required class="w-full px-3 py-2 border rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Destino*</label>
+                            <input type="text" id="osDestino" required class="w-full px-3 py-2 border rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Data Prevista Saída</label>
+                            <input type="datetime-local" id="osDataSaida" class="w-full px-3 py-2 border rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Data Prevista Chegada</label>
+                            <input type="datetime-local" id="osDataChegada" class="w-full px-3 py-2 border rounded-lg">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Carga -->
+                <div class="border-t pt-4 mb-4">
+                    <h4 class="font-medium mb-3">Detalhes da Carga</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Carga</label>
+                            <select id="osTipoCarga" class="w-full px-3 py-2 border rounded-lg">
+                                <option value="geral">Carga Geral</option>
+                                <option value="fracionada">Carga Fracionada</option>
+                                <option value="perigosa">Carga Perigosa</option>
+                                <option value="refrigerada">Carga Refrigerada</option>
+                                <option value="viva">Carga Viva</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Peso (kg)</label>
+                            <input type="number" step="0.1" id="osPeso" class="w-full px-3 py-2 border rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Volume (m³)</label>
+                            <input type="number" step="0.1" id="osVolume" class="w-full px-3 py-2 border rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Quantidade</label>
+                            <input type="number" id="osQuantidade" class="w-full px-3 py-2 border rounded-lg">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Valores -->
+                <div class="border-t pt-4 mb-4">
+                    <h4 class="font-medium mb-3">Valores</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Valor do Frete (R$)</label>
+                            <input type="number" step="0.01" id="osValorFrete" class="w-full px-3 py-2 border rounded-lg" onchange="calcularTotal()">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Pedágio (R$)</label>
+                            <input type="number" step="0.01" id="osPedagio" class="w-full px-3 py-2 border rounded-lg" onchange="calcularTotal()">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Outros Custos (R$)</label>
+                            <input type="number" step="0.01" id="osOutros" class="w-full px-3 py-2 border rounded-lg" onchange="calcularTotal()">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Valor Total (R$)</label>
+                            <input type="number" step="0.01" id="osValorTotal" readonly class="w-full px-3 py-2 border rounded-lg bg-gray-100">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Observações -->
+                <div class="border-t pt-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Observações</label>
+                    <textarea id="osObservacoes" rows="3" class="w-full px-3 py-2 border rounded-lg"></textarea>
+                </div>
+
+                <!-- Itens da Carga (para carga fracionada) -->
+                <div class="border-t pt-4 mt-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="font-medium">Itens da Carga</h4>
+                        <button type="button" onclick="adicionarItem()" class="text-blue-600 hover:text-blue-800 text-sm">
+                            <i class="fas fa-plus mr-1"></i>Adicionar Item
+                        </button>
+                    </div>
+                    <div id="itens-container">
+                        <!-- Itens serão adicionados aqui -->
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-4 mt-6">
+                    <button type="button" onclick="fecharModal()" class="px-6 py-2 border rounded-lg hover:bg-gray-50">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Dados iniciais
+        let ordensServico = JSON.parse(localStorage.getItem('ordensServico')) || [
+            { 
+                id: 1, 
+                numero: 'OS-2024-001', 
+                data: '2024-02-15', 
+                cliente: 'Transportadora ABC Ltda',
+                tipo: 'entrega',
+                veiculo: 'ABC-1234',
+                motorista: 'João da Silva',
+                origem: 'São Paulo, SP',
+                destino: 'Rio de Janeiro, RJ',
+                valor: 1500.00,
+                status: 'concluida'
+            },
+            { 
+                id: 2, 
+                numero: 'OS-2024-002', 
+                data: '2024-02-16', 
+                cliente: 'Indústrias XYZ S.A.',
+                tipo: 'coleta',
+                veiculo: 'DEF-5678',
+                motorista: 'Maria Santos',
+                origem: 'Guarulhos, SP',
+                destino: 'Belo Horizonte, MG',
+                valor: 2300.00,
+                status: 'em_andamento'
+            },
+            { 
+                id: 3, 
+                numero: 'OS-2024-003', 
+                data: '2024-02-16', 
+                cliente: 'Comércio de Alimentos Ltda',
+                tipo: 'entrega',
+                veiculo: 'GHI-9012',
+                motorista: 'Pedro Oliveira',
+                origem: 'Rio de Janeiro, RJ',
+                destino: 'Vitória, ES',
+                valor: 1800.00,
+                status: 'aberta'
+            }
+        ];
+
+        if (!localStorage.getItem('ordensServico')) {
+            localStorage.setItem('ordensServico', JSON.stringify(ordensServico));
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarTabela();
+            carregarSelects();
+            
+            // Set data atual no campo de data
+            const hoje = new Date().toISOString().split('T')[0];
+            if (document.getElementById('osData')) {
+                document.getElementById('osData').value = hoje;
+            }
+        });
+
+        function carregarTabela() {
+            const os = JSON.parse(localStorage.getItem('ordensServico')) || [];
+            const tbody = document.getElementById('tabelaOS');
+            
+            if (os.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="11" class="px-6 py-4 text-center text-gray-500">Nenhuma ordem de serviço encontrada</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = os.map(item => {
+                const statusClass = {
+                    'aberta': 'bg-yellow-100 text-yellow-800',
+                    'em_andamento': 'bg-blue-100 text-blue-800',
+                    'concluida': 'bg-green-100 text-green-800',
+                    'cancelada': 'bg-red-100 text-red-800'
+                };
+
+                const statusText = {
+                    'aberta': 'Aberta',
+                    'em_andamento': 'Em Andamento',
+                    'concluida': 'Concluída',
+                    'cancelada': 'Cancelada'
+                };
+
+                return `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4 font-medium">${item.numero}</td>
+                    <td class="px-6 py-4">${new Date(item.data).toLocaleDateString('pt-BR')}</td>
+                    <td class="px-6 py-4">${item.cliente}</td>
+                    <td class="px-6 py-4">${item.tipo}</td>
+                    <td class="px-6 py-4">${item.veiculo}</td>
+                    <td class="px-6 py-4">${item.motorista}</td>
+                    <td class="px-6 py-4">${item.origem}</td>
+                    <td class="px-6 py-4">${item.destino}</td>
+                    <td class="px-6 py-4">R$ ${item.valor?.toFixed(2) || '0,00'}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full ${statusClass[item.status]}">
+                            ${statusText[item.status]}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarOS(${item.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="visualizarOS(${item.id})" class="text-green-600 hover:text-green-800 mr-3">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button onclick="excluirOS(${item.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `}).join('');
+        }
+
+        function buscarOS() {
+            const termo = document.getElementById('buscaOS').value.toLowerCase();
+            const status = document.getElementById('filtroStatus').value;
+            const dataInicio = document.getElementById('filtroDataInicio').value;
+            const dataFim = document.getElementById('filtroDataFim').value;
+            
+            let os = JSON.parse(localStorage.getItem('ordensServico')) || [];
+            
+            // Filtrar por termo
+            if (termo) {
+                os = os.filter(item => 
+                    item.numero.toLowerCase().includes(termo) ||
+                    item.cliente.toLowerCase().includes(termo) ||
+                    item.origem.toLowerCase().includes(termo) ||
+                    item.destino.toLowerCase().includes(termo)
+                );
+            }
+            
+            // Filtrar por status
+            if (status) {
+                os = os.filter(item => item.status === status);
+            }
+            
+            // Filtrar por data
+            if (dataInicio) {
+                os = os.filter(item => item.data >= dataInicio);
+            }
+            if (dataFim) {
+                os = os.filter(item => item.data <= dataFim);
+            }
+            
+            const tbody = document.getElementById('tabelaOS');
+            
+            if (os.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="11" class="px-6 py-4 text-center text-gray-500">Nenhuma OS encontrada</td></tr>';
+                return;
+            }
+
+            const statusClass = {
+                'aberta': 'bg-yellow-100 text-yellow-800',
+                'em_andamento': 'bg-blue-100 text-blue-800',
+                'concluida': 'bg-green-100 text-green-800',
+                'cancelada': 'bg-red-100 text-red-800'
+            };
+
+            const statusText = {
+                'aberta': 'Aberta',
+                'em_andamento': 'Em Andamento',
+                'concluida': 'Concluída',
+                'cancelada': 'Cancelada'
+            };
+
+            tbody.innerHTML = os.map(item => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4 font-medium">${item.numero}</td>
+                    <td class="px-6 py-4">${new Date(item.data).toLocaleDateString('pt-BR')}</td>
+                    <td class="px-6 py-4">${item.cliente}</td>
+                    <td class="px-6 py-4">${item.tipo}</td>
+                    <td class="px-6 py-4">${item.veiculo}</td>
+                    <td class="px-6 py-4">${item.motorista}</td>
+                    <td class="px-6 py-4">${item.origem}</td>
+                    <td class="px-6 py-4">${item.destino}</td>
+                    <td class="px-6 py-4">R$ ${item.valor?.toFixed(2) || '0,00'}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full ${statusClass[item.status]}">
+                            ${statusText[item.status]}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarOS(${item.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="visualizarOS(${item.id})" class="text-green-600 hover:text-green-800 mr-3">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button onclick="excluirOS(${item.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filtrarOS() {
+            buscarOS();
+        }
+
+        function carregarSelects() {
+            // Carregar clientes
+            const clientes = JSON.parse(localStorage.getItem('clientes')) || [];
+            const selectCliente = document.getElementById('osCliente');
+            if (selectCliente) {
+                clientes.forEach(c => {
+                    const option = document.createElement('option');
+                    option.value = c.id;
+                    option.textContent = c.nome;
+                    selectCliente.appendChild(option);
+                });
+            }
+
+            // Carregar veículos
+            const veiculos = JSON.parse(localStorage.getItem('veiculos')) || [
+                { id: 1, placa: 'ABC-1234' },
+                { id: 2, placa: 'DEF-5678' },
+                { id: 3, placa: 'GHI-9012' }
+            ];
+            const selectVeiculo = document.getElementById('osVeiculo');
+            if (selectVeiculo) {
+                veiculos.forEach(v => {
+                    const option = document.createElement('option');
+                    option.value = v.placa;
+                    option.textContent = v.placa;
+                    selectVeiculo.appendChild(option);
+                });
+            }
+
+            // Carregar motoristas
+            const motoristas = JSON.parse(localStorage.getItem('motoristas')) || [];
+            const selectMotorista = document.getElementById('osMotorista');
+            if (selectMotorista) {
+                motoristas.forEach(m => {
+                    const option = document.createElement('option');
+                    option.value = m.id;
+                    option.textContent = m.nome;
+                    selectMotorista.appendChild(option);
+                });
+            }
+
+            // Carregar rotas
+            const rotas = JSON.parse(localStorage.getItem('rotas')) || [];
+            const selectRota = document.getElementById('osRota');
+            if (selectRota) {
+                rotas.forEach(r => {
+                    const option = document.createElement('option');
+                    option.value = r.id;
+                    option.textContent = `${r.codigo} - ${r.origem} → ${r.destino}`;
+                    selectRota.appendChild(option);
+                });
+            }
+        }
+
+        function carregarDadosCliente() {
+            const clienteId = document.getElementById('osCliente').value;
+            const clientes = JSON.parse(localStorage.getItem('clientes')) || [];
+            const cliente = clientes.find(c => c.id == clienteId);
+            
+            if (cliente) {
+                document.getElementById('osContato').value = cliente.nome;
+                document.getElementById('osTelefone').value = cliente.telefone || '';
+            }
+        }
+
+        function calcularTotal() {
+            const frete = parseFloat(document.getElementById('osValorFrete').value) || 0;
+            const pedagio = parseFloat(document.getElementById('osPedagio').value) || 0;
+            const outros = parseFloat(document.getElementById('osOutros').value) || 0;
+            
+            const total = frete + pedagio + outros;
+            document.getElementById('osValorTotal').value = total.toFixed(2);
+        }
+
+        function adicionarItem() {
+            const container = document.getElementById('itens-container');
+            const itemId = Date.now();
+            
+            const itemHtml = `
+                <div id="item-${itemId}" class="grid grid-cols-1 md:grid-cols-5 gap-2 mb-2 p-2 bg-gray-50 rounded">
+                    <input type="text" placeholder="Descrição" class="item-descricao px-2 py-1 border rounded">
+                    <input type="number" placeholder="Quantidade" class="item-qtd px-2 py-1 border rounded">
+                    <input type="text" placeholder="Unidade" class="item-unidade px-2 py-1 border rounded" value="UN">
+                    <input type="number" step="0.01" placeholder="Valor Unit." class="item-valor px-2 py-1 border rounded">
+                    <button type="button" onclick="removerItem(${itemId})" class="text-red-600 hover:text-red-800">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', itemHtml);
+        }
+
+        function removerItem(id) {
+            document.getElementById(`item-${id}`).remove();
+        }
+
+        function abrirModalOS(id = null) {
+            document.getElementById('formOS').reset();
+            document.getElementById('osId').value = '';
+            document.getElementById('modalTitulo').textContent = 'Nova Ordem de Serviço';
+            
+            // Limpar itens
+            document.getElementById('itens-container').innerHTML = '';
+            
+            if (id) {
+                const os = JSON.parse(localStorage.getItem('ordensServico')) || [];
+                const ordem = os.find(o => o.id === id);
+                if (ordem) {
+                    document.getElementById('modalTitulo').textContent = 'Editar Ordem de Serviço';
+                    document.getElementById('osId').value = ordem.id;
+                    document.getElementById('osNumero').value = ordem.numero;
+                    document.getElementById('osData').value = ordem.data;
+                    document.getElementById('osStatus').value = ordem.status || 'aberta';
+                    document.getElementById('osCliente').value = ordem.cliente;
+                    document.getElementById('osContato').value = ordem.contato || '';
+                    document.getElementById('osTelefone').value = ordem.telefone || '';
+                    document.getElementById('osTipo').value = ordem.tipo || 'entrega';
+                    document.getElementById('osVeiculo').value = ordem.veiculo || '';
+                    document.getElementById('osMotorista').value = ordem.motorista || '';
+                    document.getElementById('osOrigem').value = ordem.origem;
+                    document.getElementById('osDestino').value = ordem.destino;
+                    document.getElementById('osDataSaida').value = ordem.data_saida || '';
+                    document.getElementById('osDataChegada').value = ordem.data_chegada || '';
+                    document.getElementById('osTipoCarga').value = ordem.tipo_carga || 'geral';
+                    document.getElementById('osPeso').value = ordem.peso || '';
+                    document.getElementById('osVolume').value = ordem.volume || '';
+                    document.getElementById('osQuantidade').value = ordem.quantidade || '';
+                    document.getElementById('osValorFrete').value = ordem.valor_frete || '';
+                    document.getElementById('osPedagio').value = ordem.pedagio || '';
+                    document.getElementById('osOutros').value = ordem.outros || '';
+                    document.getElementById('osValorTotal').value = ordem.valor_total || '';
+                    document.getElementById('osObservacoes').value = ordem.observacoes || '';
+                }
+            } else {
+                // Gerar número automático
+                const os = JSON.parse(localStorage.getItem('ordensServico')) || [];
+                const ano = new Date().getFullYear();
+                const proximoNum = (os.length + 1).toString().padStart(3, '0');
+                document.getElementById('osNumero').value = `OS-${ano}-${proximoNum}`;
+            }
+            
+            document.getElementById('modalOS').classList.remove('hidden');
+            document.getElementById('modalOS').classList.add('flex');
+        }
+
+        function fecharModal() {
+            document.getElementById('modalOS').classList.add('hidden');
+            document.getElementById('modalOS').classList.remove('flex');
+        }
+
+        function salvarOS(event) {
+            event.preventDefault();
+            
+            const os = JSON.parse(localStorage.getItem('ordensServico')) || [];
+            const id = document.getElementById('osId').value;
+            
+            const osData = {
+                numero: document.getElementById('osNumero').value,
+                data: document.getElementById('osData').value,
+                status: document.getElementById('osStatus').value,
+                cliente: document.getElementById('osCliente').value,
+                contato: document.getElementById('osContato').value,
+                telefone: document.getElementById('osTelefone').value,
+                tipo: document.getElementById('osTipo').value,
+                veiculo: document.getElementById('osVeiculo').value,
+                motorista: document.getElementById('osMotorista').value,
+                origem: document.getElementById('osOrigem').value,
+                destino: document.getElementById('osDestino').value,
+                data_saida: document.getElementById('osDataSaida').value,
+                data_chegada: document.getElementById('osDataChegada').value,
+                tipo_carga: document.getElementById('osTipoCarga').value,
+                peso: parseFloat(document.getElementById('osPeso').value) || null,
+                volume: parseFloat(document.getElementById('osVolume').value) || null,
+                quantidade: parseInt(document.getElementById('osQuantidade').value) || null,
+                valor_frete: parseFloat(document.getElementById('osValorFrete').value) || null,
+                pedagio: parseFloat(document.getElementById('osPedagio').value) || null,
+                outros: parseFloat(document.getElementById('osOutros').value) || null,
+                valor_total: parseFloat(document.getElementById('osValorTotal').value) || null,
+                observacoes: document.getElementById('osObservacoes').value
+            };
+
+            if (id) {
+                // Editar
+                const index = os.findIndex(o => o.id == id);
+                if (index !== -1) {
+                    const oldData = {...os[index]};
+                    os[index] = { ...os[index], ...osData };
+                    localStorage.setItem('ordensServico', JSON.stringify(os));
+                    
+                    window.parent.postMessage({
+                        type: 'logModificacao',
+                        data: {
+                            tabela: 'ordensServico',
+                            operacao: 'UPDATE',
+                            registro_id: id,
+                            dados_anteriores: oldData,
+                            dados_novos: os[index]
+                        }
+                    }, '*');
+                    
+                    alert('Ordem de serviço atualizada com sucesso!');
+                }
+            } else {
+                // Novo
+                const novoId = os.length > 0 ? Math.max(...os.map(o => o.id)) + 1 : 1;
+                const novaOS = { id: novoId, ...osData };
+                os.push(novaOS);
+                localStorage.setItem('ordensServico', JSON.stringify(os));
+                
+                window.parent.postMessage({
+                    type: 'logModificacao',
+                    data: {
+                        tabela: 'ordensServico',
+                        operacao: 'INSERT',
+                        registro_id: novoId,
+                        dados_anteriores: null,
+                        dados_novos: novaOS
+                    }
+                }, '*');
+                
+                alert('Ordem de serviço salva com sucesso!');
+            }
+
+            fecharModal();
+            carregarTabela();
+        }
+
+        function editarOS(id) {
+            abrirModalOS(id);
+        }
+
+        function visualizarOS(id) {
+            alert(`Visualizar OS ${id} - Implementar visualização detalhada`);
+        }
+
+        function excluirOS(id) {
+            if (confirm('Deseja realmente excluir esta ordem de serviço?')) {
+                const os = JSON.parse(localStorage.getItem('ordensServico')) || [];
+                const ordem = os.find(o => o.id === id);
+                const novasOS = os.filter(o => o.id !== id);
+                localStorage.setItem('ordensServico', JSON.stringify(novasOS));
+                
+                window.parent.postMessage({
+                    type: 'logModificacao',
+                    data: {
+                        tabela: 'ordensServico',
+                        operacao: 'DELETE',
+                        registro_id: id,
+                        dados_anteriores: ordem,
+                        dados_novos: null
+                    }
+                }, '*');
+                
+                alert('Ordem de serviço excluída com sucesso!');
+                carregarTabela();
+            }
+        }
+    </script>
+</body>
+</html>

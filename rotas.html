@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransLog - Rotas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .modal {
+            transition: opacity 0.3s ease;
+        }
+        .modal.hidden {
+            display: none;
+            opacity: 0;
+        }
+        .modal.flex {
+            display: flex;
+            opacity: 1;
+        }
+        table tr:hover {
+            background-color: #f9fafb;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-semibold">Rotas</h3>
+                <button onclick="abrirModalRota()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-plus mr-2"></i>Nova Rota
+                </button>
+            </div>
+            
+            <!-- Busca -->
+            <div class="mt-4">
+                <input type="text" id="buscaRotas" placeholder="Buscar por código, origem ou destino..." 
+                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                    onkeyup="buscarRotas()">
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Origem</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Destino</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Distância (km)</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tempo Estimado</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaRotas" class="divide-y divide-gray-200"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal de Rota -->
+    <div id="modalRota" class="modal hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold" id="modalTitulo">Nova Rota</h3>
+                <button onclick="fecharModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="formRota" onsubmit="salvarRota(event)">
+                <input type="hidden" id="rotaId">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Código da Rota*</label>
+                        <input type="text" id="rotaCodigo" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Origem*</label>
+                        <input type="text" id="rotaOrigem" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Destino*</label>
+                        <input type="text" id="rotaDestino" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Distância (km)*</label>
+                        <input type="number" step="0.1" id="rotaDistancia" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tempo Estimado (horas)</label>
+                        <input type="number" step="0.5" id="rotaTempo" class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Pedágios</label>
+                        <input type="number" id="rotaPedagios" class="w-full px-3 py-2 border rounded-lg" placeholder="Quantidade">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Valor Pedágio (R$)</label>
+                        <input type="number" step="0.01" id="rotaValorPedagio" class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Consumo Médio (km/l)</label>
+                        <input type="number" step="0.1" id="rotaConsumo" class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Via</label>
+                        <select id="rotaTipoVia" class="w-full px-3 py-2 border rounded-lg">
+                            <option value="duplicada">Duplicada</option>
+                            <option value="simples">Simples</option>
+                            <option value="mista">Mista</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <select id="rotaStatus" class="w-full px-3 py-2 border rounded-lg">
+                            <option value="ativa">Ativa</option>
+                            <option value="inativa">Inativa</option>
+                            <option value="manutencao">Em Manutenção</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Cidades de Passagem</label>
+                    <textarea id="rotaCidades" rows="3" class="w-full px-3 py-2 border rounded-lg" placeholder="Digite as cidades separadas por vírgula"></textarea>
+                </div>
+                
+                <div class="mt-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Observações</label>
+                    <textarea id="rotaObservacoes" rows="3" class="w-full px-3 py-2 border rounded-lg"></textarea>
+                </div>
+                
+                <div class="flex justify-end space-x-4 mt-6">
+                    <button type="button" onclick="fecharModal()" class="px-6 py-2 border rounded-lg hover:bg-gray-50">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Dados iniciais
+        let rotas = JSON.parse(localStorage.getItem('rotas')) || [
+            { id: 1, codigo: 'SP-RJ-001', origem: 'São Paulo, SP', destino: 'Rio de Janeiro, RJ', distancia: 430, tempo: 6.5, pedagios: 4, valor_pedagio: 60.50, consumo: 2.8, tipo_via: 'duplicada', cidades: 'São José dos Campos, Volta Redonda', status: 'ativa' },
+            { id: 2, codigo: 'SP-MG-001', origem: 'São Paulo, SP', destino: 'Belo Horizonte, MG', distancia: 586, tempo: 8, pedagios: 3, valor_pedagio: 45.20, consumo: 2.6, tipo_via: 'mista', cidades: 'Campinas, Ribeirão Preto', status: 'ativa' },
+            { id: 3, codigo: 'PR-SC-001', origem: 'Curitiba, PR', destino: 'Florianópolis, SC', distancia: 300, tempo: 4.5, pedagios: 2, valor_pedagio: 28.90, consumo: 3.0, tipo_via: 'duplicada', cidades: 'Joinville', status: 'ativa' }
+        ];
+
+        if (!localStorage.getItem('rotas')) {
+            localStorage.setItem('rotas', JSON.stringify(rotas));
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarTabela();
+        });
+
+        function carregarTabela() {
+            rotas = JSON.parse(localStorage.getItem('rotas')) || [];
+            const tbody = document.getElementById('tabelaRotas');
+            
+            if (rotas.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">Nenhuma rota cadastrada</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = rotas.map(r => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${r.id}</td>
+                    <td class="px-6 py-4 font-medium">${r.codigo}</td>
+                    <td class="px-6 py-4">${r.origem}</td>
+                    <td class="px-6 py-4">${r.destino}</td>
+                    <td class="px-6 py-4">${r.distancia} km</td>
+                    <td class="px-6 py-4">${r.tempo} h</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full 
+                            ${r.status === 'ativa' ? 'bg-green-100 text-green-800' : 
+                              r.status === 'inativa' ? 'bg-red-100 text-red-800' : 
+                              'bg-yellow-100 text-yellow-800'}">
+                            ${r.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarRota(${r.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="excluirRota(${r.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function buscarRotas() {
+            const termo = document.getElementById('buscaRotas').value.toLowerCase();
+            const rotas = JSON.parse(localStorage.getItem('rotas')) || [];
+            
+            const resultados = rotas.filter(r => 
+                r.codigo.toLowerCase().includes(termo) ||
+                r.origem.toLowerCase().includes(termo) ||
+                r.destino.toLowerCase().includes(termo) ||
+                (r.cidades && r.cidades.toLowerCase().includes(termo))
+            );
+            
+            const tbody = document.getElementById('tabelaRotas');
+            if (resultados.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">Nenhuma rota encontrada</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = resultados.map(r => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${r.id}</td>
+                    <td class="px-6 py-4 font-medium">${r.codigo}</td>
+                    <td class="px-6 py-4">${r.origem}</td>
+                    <td class="px-6 py-4">${r.destino}</td>
+                    <td class="px-6 py-4">${r.distancia} km</td>
+                    <td class="px-6 py-4">${r.tempo} h</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full 
+                            ${r.status === 'ativa' ? 'bg-green-100 text-green-800' : 
+                              r.status === 'inativa' ? 'bg-red-100 text-red-800' : 
+                              'bg-yellow-100 text-yellow-800'}">
+                            ${r.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarRota(${r.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="excluirRota(${r.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function abrirModalRota(id = null) {
+            document.getElementById('formRota').reset();
+            document.getElementById('rotaId').value = '';
+            document.getElementById('modalTitulo').textContent = 'Nova Rota';
+            
+            if (id) {
+                const rotas = JSON.parse(localStorage.getItem('rotas')) || [];
+                const rota = rotas.find(r => r.id === id);
+                if (rota) {
+                    document.getElementById('modalTitulo').textContent = 'Editar Rota';
+                    document.getElementById('rotaId').value = rota.id;
+                    document.getElementById('rotaCodigo').value = rota.codigo;
+                    document.getElementById('rotaOrigem').value = rota.origem;
+                    document.getElementById('rotaDestino').value = rota.destino;
+                    document.getElementById('rotaDistancia').value = rota.distancia;
+                    document.getElementById('rotaTempo').value = rota.tempo || '';
+                    document.getElementById('rotaPedagios').value = rota.pedagios || '';
+                    document.getElementById('rotaValorPedagio').value = rota.valor_pedagio || '';
+                    document.getElementById('rotaConsumo').value = rota.consumo || '';
+                    document.getElementById('rotaTipoVia').value = rota.tipo_via || 'duplicada';
+                    document.getElementById('rotaStatus').value = rota.status || 'ativa';
+                    document.getElementById('rotaCidades').value = rota.cidades || '';
+                    document.getElementById('rotaObservacoes').value = rota.observacoes || '';
+                }
+            }
+            
+            document.getElementById('modalRota').classList.remove('hidden');
+            document.getElementById('modalRota').classList.add('flex');
+        }
+
+        function fecharModal() {
+            document.getElementById('modalRota').classList.add('hidden');
+            document.getElementById('modalRota').classList.remove('flex');
+        }
+
+        function salvarRota(event) {
+            event.preventDefault();
+            
+            const rotas = JSON.parse(localStorage.getItem('rotas')) || [];
+            const id = document.getElementById('rotaId').value;
+            
+            const rotaData = {
+                codigo: document.getElementById('rotaCodigo').value,
+                origem: document.getElementById('rotaOrigem').value,
+                destino: document.getElementById('rotaDestino').value,
+                distancia: parseFloat(document.getElementById('rotaDistancia').value),
+                tempo: parseFloat(document.getElementById('rotaTempo').value) || null,
+                pedagios: parseInt(document.getElementById('rotaPedagios').value) || null,
+                valor_pedagio: parseFloat(document.getElementById('rotaValorPedagio').value) || null,
+                consumo: parseFloat(document.getElementById('rotaConsumo').value) || null,
+                tipo_via: document.getElementById('rotaTipoVia').value,
+                status: document.getElementById('rotaStatus').value,
+                cidades: document.getElementById('rotaCidades').value,
+                observacoes: document.getElementById('rotaObservacoes').value
+            };
+
+            if (id) {
+                // Editar
+                const index = rotas.findIndex(r => r.id == id);
+                if (index !== -1) {
+                    const oldData = {...rotas[index]};
+                    rotas[index] = { ...rotas[index], ...rotaData };
+                    localStorage.setItem('rotas', JSON.stringify(rotas));
+                    
+                    window.parent.postMessage({
+                        type: 'logModificacao',
+                        data: {
+                            tabela: 'rotas',
+                            operacao: 'UPDATE',
+                            registro_id: id,
+                            dados_anteriores: oldData,
+                            dados_novos: rotas[index]
+                        }
+                    }, '*');
+                    
+                    alert('Rota atualizada com sucesso!');
+                }
+            } else {
+                // Novo
+                const novoId = rotas.length > 0 ? Math.max(...rotas.map(r => r.id)) + 1 : 1;
+                const novaRota = { id: novoId, ...rotaData };
+                rotas.push(novaRota);
+                localStorage.setItem('rotas', JSON.stringify(rotas));
+                
+                window.parent.postMessage({
+                    type: 'logModificacao',
+                    data: {
+                        tabela: 'rotas',
+                        operacao: 'INSERT',
+                        registro_id: novoId,
+                        dados_anteriores: null,
+                        dados_novos: novaRota
+                    }
+                }, '*');
+                
+                alert('Rota salva com sucesso!');
+            }
+
+            fecharModal();
+            carregarTabela();
+        }
+
+        function editarRota(id) {
+            abrirModalRota(id);
+        }
+
+        function excluirRota(id) {
+            if (confirm('Deseja realmente excluir esta rota?')) {
+                const rotas = JSON.parse(localStorage.getItem('rotas')) || [];
+                const rota = rotas.find(r => r.id === id);
+                const novasRotas = rotas.filter(r => r.id !== id);
+                localStorage.setItem('rotas', JSON.stringify(novasRotas));
+                
+                window.parent.postMessage({
+                    type: 'logModificacao',
+                    data: {
+                        tabela: 'rotas',
+                        operacao: 'DELETE',
+                        registro_id: id,
+                        dados_anteriores: rota,
+                        dados_novos: null
+                    }
+                }, '*');
+                
+                alert('Rota excluída com sucesso!');
+                carregarTabela();
+            }
+        }
+    </script>
+</body>
+</html>

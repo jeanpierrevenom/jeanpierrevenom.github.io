@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransLog - Sistema de Gestão</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .sidebar {
+            transition: all 0.3s;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        .sidebar-item {
+            transition: all 0.2s;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+        }
+        .sidebar-item:hover {
+            background-color: #374151;
+            border-left-color: #3b82f6;
+        }
+        .sidebar-item.active {
+            background-color: #1f2937;
+            border-left-color: #3b82f6;
+            color: white;
+        }
+        .submenu {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .submenu.open {
+            max-height: 500px;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <!-- Tela de Login -->
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-600 to-blue-800">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-96">
+            <div class="text-center mb-8">
+                <i class="fas fa-truck text-blue-600 text-5xl mb-4"></i>
+                <h2 class="text-2xl font-bold text-gray-800">TransLog</h2>
+                <p class="text-gray-600">Sistema de Gestão</p>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="username">
+                        <i class="fas fa-user mr-2"></i>Usuário
+                    </label>
+                    <input type="text" id="username" value="admin" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                </div>
+                
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="password">
+                        <i class="fas fa-lock mr-2"></i>Senha
+                    </label>
+                    <input type="password" id="password" value="admin" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                </div>
+                
+                <div id="loginError" class="text-red-500 text-sm hidden">
+                    <i class="fas fa-exclamation-circle mr-1"></i>Usuário ou senha inválidos!
+                </div>
+                
+                <button onclick="fazerLogin()" 
+                    class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors font-bold">
+                    <i class="fas fa-sign-in-alt mr-2"></i>Entrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sistema Principal -->
+    <div id="mainSystem" class="hidden flex h-screen bg-gray-100">
+        <!-- Sidebar -->
+        <div class="sidebar w-72 bg-gray-800 text-white flex flex-col">
+            <div class="p-6 border-b border-gray-700">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-truck text-blue-400 text-3xl"></i>
+                    <div>
+                        <h1 class="text-xl font-bold">TransLog</h1>
+                        <p class="text-xs text-gray-400">Sistema de Gestão</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto py-4">
+                <!-- Início -->
+                <div class="sidebar-item px-4 py-2 text-gray-300" onclick="carregarPagina('dashboard.html')">
+                    <i class="fas fa-home w-6"></i>
+                    <span class="ml-2">Início</span>
+                </div>
+
+                <!-- Cadastros (agora é um item que abre submenu com todos os cadastros) -->
+                <div class="mt-2">
+                    <div class="sidebar-item px-4 py-2 text-gray-300" onclick="toggleSubmenu('cadastros')">
+                        <i class="fas fa-database w-6"></i>
+                        <span class="ml-2">Cadastros</span>
+                        <i class="fas fa-chevron-down ml-auto text-xs"></i>
+                    </div>
+                    <div id="submenu-cadastros" class="submenu bg-gray-700">
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('clientes.html')">
+                            <i class="fas fa-users w-5"></i>
+                            <span class="ml-2">Clientes</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('fornecedores.html')">
+                            <i class="fas fa-truck w-5"></i>
+                            <span class="ml-2">Fornecedores</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('motoristas.html')">
+                            <i class="fas fa-id-card w-5"></i>
+                            <span class="ml-2">Motoristas</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('parceiros.html')">
+                            <i class="fas fa-handshake w-5"></i>
+                            <span class="ml-2">Parceiros/Representantes</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('despachantes.html')">
+                            <i class="fas fa-file-signature w-5"></i>
+                            <span class="ml-2">Despachantes/Agências</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('memorandos.html')">
+                            <i class="fas fa-sticky-note w-5"></i>
+                            <span class="ml-2">Memorandos</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300 border-t border-gray-600 mt-2" onclick="carregarPagina('rotas.html')">
+                            <i class="fas fa-route w-5"></i>
+                            <span class="ml-2">Rotas</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('rotas-fracionadas.html')">
+                            <i class="fas fa-code-branch w-5"></i>
+                            <span class="ml-2">Rotas Fracionadas</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('tabelas.html')">
+                            <i class="fas fa-table w-5"></i>
+                            <span class="ml-2">Tabelas</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('ordem-servico.html')">
+                            <i class="fas fa-clipboard-list w-5"></i>
+                            <span class="ml-2">Ordem de Serviço</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('usuarios.html')">
+                            <i class="fas fa-user-cog w-5"></i>
+                            <span class="ml-2">Usuários do Sistema</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Frota -->
+                <div class="mt-2">
+                    <div class="sidebar-item px-4 py-2 text-gray-300" onclick="toggleSubmenu('frota')">
+                        <i class="fas fa-truck-moving w-6"></i>
+                        <span class="ml-2">Frota</span>
+                        <i class="fas fa-chevron-down ml-auto text-xs"></i>
+                    </div>
+                    <div id="submenu-frota" class="submenu bg-gray-700">
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('frota/veiculos.html')">
+                            <i class="fas fa-truck w-5"></i>
+                            <span class="ml-2">Cadastro de Veículos</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('frota/oleo.html')">
+                            <i class="fas fa-oil-can w-5"></i>
+                            <span class="ml-2">Controle de Óleo</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('frota/combustivel.html')">
+                            <i class="fas fa-gas-pump w-5"></i>
+                            <span class="ml-2">Controle de Combustível</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('frota/documentos.html')">
+                            <i class="fas fa-file-alt w-5"></i>
+                            <span class="ml-2">Controle de Documentos</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('frota/status-frota.html')">
+                            <i class="fas fa-chart-pie w-5"></i>
+                            <span class="ml-2">Status da Frota</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('frota/pneus.html')">
+                            <i class="fas fa-circle w-5"></i>
+                            <span class="ml-2">Pneus</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('frota/manutencao.html')">
+                            <i class="fas fa-tools w-5"></i>
+                            <span class="ml-2">Manutenção</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('frota/tipos-veiculos.html')">
+                            <i class="fas fa-tag w-5"></i>
+                            <span class="ml-2">Tipos de Veículos</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('frota/rastreadores.html')">
+                            <i class="fas fa-satellite-dish w-5"></i>
+                            <span class="ml-2">Cadastro de Rastreadores</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transportes -->
+                <div class="mt-2">
+                    <div class="sidebar-item px-4 py-2 text-gray-300" onclick="toggleSubmenu('transportes')">
+                        <i class="fas fa-route w-6"></i>
+                        <span class="ml-2">Transportes</span>
+                        <i class="fas fa-chevron-down ml-auto text-xs"></i>
+                    </div>
+                    <div id="submenu-transportes" class="submenu bg-gray-700">
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('transportes/cotacao.html')">
+                            <i class="fas fa-calculator w-5"></i>
+                            <span class="ml-2">Cotação</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('transportes/cte.html')">
+                            <i class="fas fa-file-invoice w-5"></i>
+                            <span class="ml-2">Emissão de CT-e</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('transportes/ordem-coleta.html')">
+                            <i class="fas fa-clipboard-list w-5"></i>
+                            <span class="ml-2">Ordem de Coleta</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('transportes/romaneio.html')">
+                            <i class="fas fa-truck-loading w-5"></i>
+                            <span class="ml-2">Romaneio</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('transportes/mdfe.html')">
+                            <i class="fas fa-file-alt w-5"></i>
+                            <span class="ml-2">Emissão de MDF-e</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('transportes/carregamentos.html')">
+                            <i class="fas fa-boxes w-5"></i>
+                            <span class="ml-2">Controle de Carregamentos</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fiscal -->
+                <div class="mt-2">
+                    <div class="sidebar-item px-4 py-2 text-gray-300" onclick="toggleSubmenu('fiscal')">
+                        <i class="fas fa-file-invoice-dollar w-6"></i>
+                        <span class="ml-2">Fiscal</span>
+                        <i class="fas fa-chevron-down ml-auto text-xs"></i>
+                    </div>
+                    <div id="submenu-fiscal" class="submenu bg-gray-700">
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('fiscal/nfse.html')">
+                            <i class="fas fa-file-invoice w-5"></i>
+                            <span class="ml-2">NFS-e</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('fiscal/consulta-nfse.html')">
+                            <i class="fas fa-search w-5"></i>
+                            <span class="ml-2">Consulta NFS-e</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('fiscal/nfe.html')">
+                            <i class="fas fa-file-invoice w-5"></i>
+                            <span class="ml-2">NF-e</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('fiscal/consulta-nfe.html')">
+                            <i class="fas fa-search w-5"></i>
+                            <span class="ml-2">Consulta NF-e</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Entregas -->
+                <div class="mt-2">
+                    <div class="sidebar-item px-4 py-2 text-gray-300" onclick="toggleSubmenu('entregas')">
+                        <i class="fas fa-box w-6"></i>
+                        <span class="ml-2">Entregas</span>
+                        <i class="fas fa-chevron-down ml-auto text-xs"></i>
+                    </div>
+                    <div id="submenu-entregas" class="submenu bg-gray-700">
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('entregas/controle-entregas.html')">
+                            <i class="fas fa-clipboard-check w-5"></i>
+                            <span class="ml-2">Controle de Entregas</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('entregas/ocorrencias.html')">
+                            <i class="fas fa-exclamation-triangle w-5"></i>
+                            <span class="ml-2">Ocorrências</span>
+                        </div>
+                        <div class="sidebar-item pl-10 pr-4 py-2 text-sm text-gray-300" onclick="carregarPagina('entregas/consulta-entregas.html')">
+                            <i class="fas fa-search w-5"></i>
+                            <span class="ml-2">Consulta de Entregas</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Info -->
+            <div class="p-4 border-t border-gray-700">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                        <i class="fas fa-user text-white"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm font-medium" id="userDisplay">Carregando...</p>
+                        <p class="text-xs text-gray-400" id="userLevel"></p>
+                    </div>
+                    <button onclick="logout()" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Top Bar -->
+            <div class="bg-white border-b shadow-sm px-6 py-3">
+                <div class="flex items-center justify-between">
+                    <h2 id="pageTitle" class="text-xl font-semibold text-gray-800">Início</h2>
+                    <div class="flex items-center space-x-4">
+                        <span class="text-sm text-gray-600" id="currentDate"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Area com Iframe -->
+            <div id="contentArea" class="flex-1 overflow-y-auto bg-gray-100">
+                <iframe id="pageFrame" src="dashboard.html" class="w-full h-full"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Usuários padrão
+        let usuarios = [
+            { id: 1, username: 'admin', nome: 'Administrador', senha: 'admin', nivel: 'admin', ativo: true },
+            { id: 2, username: 'gerente', nome: 'Gerente Geral', senha: '123456', nivel: 'gerente', ativo: true },
+            { id: 3, username: 'operador', nome: 'Operador', senha: '123456', nivel: 'operador', ativo: true }
+        ];
+
+        let usuarioAtual = null;
+        let logsAcesso = JSON.parse(localStorage.getItem('logsAcesso')) || [];
+        let logsModificacao = JSON.parse(localStorage.getItem('logsModificacao')) || [];
+
+        // Inicialização
+        function init() {
+            if (!localStorage.getItem('usuarios')) {
+                localStorage.setItem('usuarios', JSON.stringify(usuarios));
+            }
+            atualizarData();
+        }
+
+        // Funções de Login
+        function fazerLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const loginError = document.getElementById('loginError');
+
+            const usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+            const usuario = usuarios.find(u => u.username === username && u.senha === password && u.ativo);
+
+            if (usuario) {
+                usuarioAtual = usuario;
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('mainSystem').classList.remove('hidden');
+                document.getElementById('userDisplay').textContent = usuario.nome;
+                document.getElementById('userLevel').textContent = usuario.nivel === 'admin' ? 'Administrador' : 
+                                                                  usuario.nivel === 'gerente' ? 'Gerente' : 'Operador';
+                
+                registrarLogAcesso('login', 'Login realizado com sucesso');
+                carregarPagina('dashboard.html');
+            } else {
+                loginError.classList.remove('hidden');
+            }
+        }
+
+        function logout() {
+            if (usuarioAtual) {
+                registrarLogAcesso('logout', 'Logout realizado');
+            }
+            usuarioAtual = null;
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('mainSystem').classList.add('hidden');
+        }
+
+        function atualizarData() {
+            const hoje = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('currentDate').textContent = hoje.toLocaleDateString('pt-BR', options);
+        }
+
+        // Funções de Log
+        function registrarLogAcesso(tipo, descricao) {
+            const log = {
+                id: Date.now(),
+                usuario_id: usuarioAtual?.id,
+                usuario_nome: usuarioAtual?.nome,
+                tipo: tipo,
+                descricao: descricao,
+                data: new Date().toISOString()
+            };
+            logsAcesso.push(log);
+            localStorage.setItem('logsAcesso', JSON.stringify(logsAcesso));
+        }
+
+        function registrarLogModificacao(tabela, operacao, registro_id, dados_anteriores, dados_novos) {
+            const log = {
+                id: Date.now(),
+                usuario_id: usuarioAtual?.id,
+                usuario_nome: usuarioAtual?.nome,
+                tabela: tabela,
+                operacao: operacao,
+                registro_id: registro_id,
+                dados_anteriores: dados_anteriores,
+                dados_novos: dados_novos,
+                data: new Date().toISOString()
+            };
+            logsModificacao.push(log);
+            localStorage.setItem('logsModificacao', JSON.stringify(logsModificacao));
+        }
+
+        // Funções do Menu
+        function toggleSubmenu(menu) {
+            const submenu = document.getElementById(`submenu-${menu}`);
+            submenu.classList.toggle('open');
+        }
+
+        function carregarPagina(pagina) {
+            const iframe = document.getElementById('pageFrame');
+            
+            // Mapear títulos das páginas
+            const titles = {
+                'dashboard.html': 'Início',
+                'clientes.html': 'Clientes',
+                'fornecedores.html': 'Fornecedores',
+                'motoristas.html': 'Motoristas',
+                'parceiros.html': 'Parceiros/Representantes',
+                'despachantes.html': 'Despachantes/Agências',
+                'memorandos.html': 'Memorandos',
+                'rotas.html': 'Rotas',
+                'rotas-fracionadas.html': 'Rotas Fracionadas',
+                'tabelas.html': 'Tabelas',
+                'ordem-servico.html': 'Ordem de Serviço',
+                'usuarios.html': 'Usuários do Sistema'
+            };
+
+            document.getElementById('pageTitle').textContent = titles[pagina] || 'TransLog';
+            
+            // Adiciona timestamp para evitar cache
+            iframe.src = pagina + '?t=' + new Date().getTime();
+        }
+
+        // Receber mensagens dos iframes
+        window.addEventListener('message', function(event) {
+            if (event.data.type === 'logModificacao') {
+                const log = event.data.data;
+                registrarLogModificacao(
+                    log.tabela, 
+                    log.operacao, 
+                    log.registro_id, 
+                    log.dados_anteriores, 
+                    log.dados_novos
+                );
+            }
+            
+            if (event.data.type === 'teste') {
+                console.log('Teste recebido do iframe:', event.data.data);
+            }
+        });
+
+
+
+        init();
+    </script>
+
+
+
+    
+
+</body>
+</html>

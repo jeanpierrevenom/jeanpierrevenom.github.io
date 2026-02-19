@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransLog - Despachantes/Agências</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .modal {
+            transition: opacity 0.3s ease;
+        }
+        .modal.hidden {
+            display: none;
+            opacity: 0;
+        }
+        .modal.flex {
+            display: flex;
+            opacity: 1;
+        }
+        table tr:hover {
+            background-color: #f9fafb;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-semibold">Despachantes/Agências</h3>
+                <button onclick="abrirModalDespachante()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-plus mr-2"></i>Novo Despachante
+                </button>
+            </div>
+            
+            <!-- Busca -->
+            <div class="mt-4">
+                <input type="text" id="buscaDespachantes" placeholder="Buscar por nome, documento ou cidade..." 
+                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                    onkeyup="buscarDespachantes()">
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome/Razão Social</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">CPF/CNPJ</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telefone</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cidade/UF</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaDespachantes" class="divide-y divide-gray-200"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal de Despachante -->
+    <div id="modalDespachante" class="modal hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold" id="modalTitulo">Novo Despachante</h3>
+                <button onclick="fecharModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="formDespachante" onsubmit="salvarDespachante(event)">
+                <input type="hidden" id="despachanteId">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nome/Razão Social*</label>
+                        <input type="text" id="despachanteNome" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">CPF/CNPJ*</label>
+                        <input type="text" id="despachanteCpfCnpj" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tipo*</label>
+                        <select id="despachanteTipo" required class="w-full px-3 py-2 border rounded-lg">
+                            <option value="">Selecione...</option>
+                            <option value="despachante">Despachante</option>
+                            <option value="agencia">Agência</option>
+                            <option value="ambos">Ambos</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                        <input type="text" id="despachanteTelefone" class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" id="despachanteEmail" class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Registro</label>
+                        <input type="text" id="despachanteRegistro" class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">CEP</label>
+                        <input type="text" id="despachanteCep" class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Endereço</label>
+                        <input type="text" id="despachanteEndereco" class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
+                        <input type="text" id="despachanteCidade" class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">UF</label>
+                        <select id="despachanteUf" class="w-full px-3 py-2 border rounded-lg">
+                            <option value="">Selecione...</option>
+                            <option value="AC">AC</option><option value="AL">AL</option><option value="AP">AP</option>
+                            <option value="AM">AM</option><option value="BA">BA</option><option value="CE">CE</option>
+                            <option value="DF">DF</option><option value="ES">ES</option><option value="GO">GO</option>
+                            <option value="MA">MA</option><option value="MT">MT</option><option value="MS">MS</option>
+                            <option value="MG">MG</option><option value="PA">PA</option><option value="PB">PB</option>
+                            <option value="PR">PR</option><option value="PE">PE</option><option value="PI">PI</option>
+                            <option value="RJ">RJ</option><option value="RN">RN</option><option value="RS">RS</option>
+                            <option value="RO">RO</option><option value="RR">RR</option><option value="SC">SC</option>
+                            <option value="SP" selected>SP</option><option value="SE">SE</option><option value="TO">TO</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <select id="despachanteStatus" class="w-full px-3 py-2 border rounded-lg">
+                            <option value="ativo">Ativo</option>
+                            <option value="inativo">Inativo</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Observações</label>
+                    <textarea id="despachanteObservacoes" rows="3" class="w-full px-3 py-2 border rounded-lg"></textarea>
+                </div>
+                <div class="flex justify-end space-x-4 mt-6">
+                    <button type="button" onclick="fecharModal()" class="px-6 py-2 border rounded-lg hover:bg-gray-50">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Dados iniciais
+        let despachantes = JSON.parse(localStorage.getItem('despachantes')) || [
+            { id: 1, nome: 'Despachante Oliveira', cpf_cnpj: '12.345.678/0001-90', tipo: 'despachante', telefone: '(11) 3456-7890', email: 'oliveira@despachante.com', registro: '12345', cidade: 'São Paulo', uf: 'SP', status: 'ativo' },
+            { id: 2, nome: 'Agência de Documentos', cpf_cnpj: '98.765.432/0001-10', tipo: 'agencia', telefone: '(11) 4567-8901', email: 'contato@agenciadoc.com', registro: '67890', cidade: 'Guarulhos', uf: 'SP', status: 'ativo' }
+        ];
+
+        if (!localStorage.getItem('despachantes')) {
+            localStorage.setItem('despachantes', JSON.stringify(despachantes));
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarTabela();
+        });
+
+        function carregarTabela() {
+            despachantes = JSON.parse(localStorage.getItem('despachantes')) || [];
+            const tbody = document.getElementById('tabelaDespachantes');
+            
+            if (despachantes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="px-6 py-4 text-center text-gray-500">Nenhum despachante cadastrado</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = despachantes.map(d => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${d.id}</td>
+                    <td class="px-6 py-4">${d.nome}</td>
+                    <td class="px-6 py-4">${d.cpf_cnpj}</td>
+                    <td class="px-6 py-4">
+                        ${d.tipo === 'despachante' ? 'Despachante' : 
+                          d.tipo === 'agencia' ? 'Agência' : 'Ambos'}
+                    </td>
+                    <td class="px-6 py-4">${d.telefone || '-'}</td>
+                    <td class="px-6 py-4">${d.email || '-'}</td>
+                    <td class="px-6 py-4">${d.cidade || '-'}/${d.uf || '-'}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full ${d.status === 'ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                            ${d.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarDespachante(${d.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="excluirDespachante(${d.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function buscarDespachantes() {
+            const termo = document.getElementById('buscaDespachantes').value.toLowerCase();
+            const despachantes = JSON.parse(localStorage.getItem('despachantes')) || [];
+            
+            const resultados = despachantes.filter(d => 
+                d.nome.toLowerCase().includes(termo) ||
+                (d.cpf_cnpj && d.cpf_cnpj.toLowerCase().includes(termo)) ||
+                (d.cidade && d.cidade.toLowerCase().includes(termo))
+            );
+            
+            const tbody = document.getElementById('tabelaDespachantes');
+            if (resultados.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="px-6 py-4 text-center text-gray-500">Nenhum despachante encontrado</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = resultados.map(d => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${d.id}</td>
+                    <td class="px-6 py-4">${d.nome}</td>
+                    <td class="px-6 py-4">${d.cpf_cnpj}</td>
+                    <td class="px-6 py-4">
+                        ${d.tipo === 'despachante' ? 'Despachante' : 
+                          d.tipo === 'agencia' ? 'Agência' : 'Ambos'}
+                    </td>
+                    <td class="px-6 py-4">${d.telefone || '-'}</td>
+                    <td class="px-6 py-4">${d.email || '-'}</td>
+                    <td class="px-6 py-4">${d.cidade || '-'}/${d.uf || '-'}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full ${d.status === 'ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                            ${d.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarDespachante(${d.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="excluirDespachante(${d.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function abrirModalDespachante(id = null) {
+            document.getElementById('formDespachante').reset();
+            document.getElementById('despachanteId').value = '';
+            document.getElementById('modalTitulo').textContent = 'Novo Despachante';
+            
+            if (id) {
+                const despachantes = JSON.parse(localStorage.getItem('despachantes')) || [];
+                const despachante = despachantes.find(d => d.id === id);
+                if (despachante) {
+                    document.getElementById('modalTitulo').textContent = 'Editar Despachante';
+                    document.getElementById('despachanteId').value = despachante.id;
+                    document.getElementById('despachanteNome').value = despachante.nome;
+                    document.getElementById('despachanteCpfCnpj').value = despachante.cpf_cnpj;
+                    document.getElementById('despachanteTipo').value = despachante.tipo;
+                    document.getElementById('despachanteTelefone').value = despachante.telefone || '';
+                    document.getElementById('despachanteEmail').value = despachante.email || '';
+                    document.getElementById('despachanteRegistro').value = despachante.registro || '';
+                    document.getElementById('despachanteCep').value = despachante.cep || '';
+                    document.getElementById('despachanteEndereco').value = despachante.endereco || '';
+                    document.getElementById('despachanteCidade').value = despachante.cidade || '';
+                    document.getElementById('despachanteUf').value = despachante.uf || '';
+                    document.getElementById('despachanteStatus').value = despachante.status || 'ativo';
+                    document.getElementById('despachanteObservacoes').value = despachante.observacoes || '';
+                }
+            }
+            
+            document.getElementById('modalDespachante').classList.remove('hidden');
+            document.getElementById('modalDespachante').classList.add('flex');
+        }
+
+        function fecharModal() {
+            document.getElementById('modalDespachante').classList.add('hidden');
+            document.getElementById('modalDespachante').classList.remove('flex');
+        }
+
+        function salvarDespachante(event) {
+            event.preventDefault();
+            
+            const despachantes = JSON.parse(localStorage.getItem('despachantes')) || [];
+            const id = document.getElementById('despachanteId').value;
+            
+            const despachanteData = {
+                nome: document.getElementById('despachanteNome').value,
+                cpf_cnpj: document.getElementById('despachanteCpfCnpj').value,
+                tipo: document.getElementById('despachanteTipo').value,
+                telefone: document.getElementById('despachanteTelefone').value,
+                email: document.getElementById('despachanteEmail').value,
+                registro: document.getElementById('despachanteRegistro').value,
+                cep: document.getElementById('despachanteCep').value,
+                endereco: document.getElementById('despachanteEndereco').value,
+                cidade: document.getElementById('despachanteCidade').value,
+                uf: document.getElementById('despachanteUf').value,
+                status: document.getElementById('despachanteStatus').value,
+                observacoes: document.getElementById('despachanteObservacoes').value
+            };
+
+            if (id) {
+                // Editar
+                const index = despachantes.findIndex(d => d.id == id);
+                if (index !== -1) {
+                    const oldData = {...despachantes[index]};
+                    despachantes[index] = { ...despachantes[index], ...despachanteData };
+                    localStorage.setItem('despachantes', JSON.stringify(despachantes));
+                    
+                    window.parent.postMessage({
+                        type: 'logModificacao',
+                        data: {
+                            tabela: 'despachantes',
+                            operacao: 'UPDATE',
+                            registro_id: id,
+                            dados_anteriores: oldData,
+                            dados_novos: despachantes[index]
+                        }
+                    }, '*');
+                    
+                    alert('Despachante atualizado com sucesso!');
+                }
+            } else {
+                // Novo
+                const novoId = despachantes.length > 0 ? Math.max(...despachantes.map(d => d.id)) + 1 : 1;
+                const novoDespachante = { id: novoId, ...despachanteData };
+                despachantes.push(novoDespachante);
+                localStorage.setItem('despachantes', JSON.stringify(despachantes));
+                
+                window.parent.postMessage({
+                    type: 'logModificacao',
+                    data: {
+                        tabela: 'despachantes',
+                        operacao: 'INSERT',
+                        registro_id: novoId,
+                        dados_anteriores: null,
+                        dados_novos: novoDespachante
+                    }
+                }, '*');
+                
+                alert('Despachante salvo com sucesso!');
+            }
+
+            fecharModal();
+            carregarTabela();
+        }
+
+        function editarDespachante(id) {
+            abrirModalDespachante(id);
+        }
+
+        function excluirDespachante(id) {
+            if (confirm('Deseja realmente excluir este despachante?')) {
+                const despachantes = JSON.parse(localStorage.getItem('despachantes')) || [];
+                const despachante = despachantes.find(d => d.id === id);
+                const novosDespachantes = despachantes.filter(d => d.id !== id);
+                localStorage.setItem('despachantes', JSON.stringify(novosDespachantes));
+                
+                window.parent.postMessage({
+                    type: 'logModificacao',
+                    data: {
+                        tabela: 'despachantes',
+                        operacao: 'DELETE',
+                        registro_id: id,
+                        dados_anteriores: despachante,
+                        dados_novos: null
+                    }
+                }, '*');
+                
+                alert('Despachante excluído com sucesso!');
+                carregarTabela();
+            }
+        }
+    </script>
+</body>
+</html>

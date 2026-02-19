@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransLog - Tabelas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .modal {
+            transition: opacity 0.3s ease;
+        }
+        .modal.hidden {
+            display: none;
+            opacity: 0;
+        }
+        .modal.flex {
+            display: flex;
+            opacity: 1;
+        }
+        .tab-button {
+            padding: 0.5rem 1rem;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+        }
+        .tab-button.active {
+            border-bottom-color: #3b82f6;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        table tr:hover {
+            background-color: #f9fafb;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-6">
+    <!-- Abas de Tabelas -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="flex border-b overflow-x-auto">
+            <button class="tab-button active px-6 py-3 text-sm font-medium" onclick="mudarAba('fretes')">
+                <i class="fas fa-truck mr-2"></i>Tabela de Fretes
+            </button>
+            <button class="tab-button px-6 py-3 text-sm font-medium" onclick="mudarAba('produtos')">
+                <i class="fas fa-box mr-2"></i>Tabela de Produtos
+            </button>
+            <button class="tab-button px-6 py-3 text-sm font-medium" onclick="mudarAba('servicos')">
+                <i class="fas fa-tools mr-2"></i>Tabela de Serviços
+            </button>
+            <button class="tab-button px-6 py-3 text-sm font-medium" onclick="mudarAba('impostos')">
+                <i class="fas fa-calculator mr-2"></i>Tabela de Impostos
+            </button>
+            <button class="tab-button px-6 py-3 text-sm font-medium" onclick="mudarAba('comissoes')">
+                <i class="fas fa-percent mr-2"></i>Tabela de Comissões
+            </button>
+        </div>
+    </div>
+
+    <!-- Conteúdo das Abas -->
+    
+    <!-- Tabela de Fretes -->
+    <div id="tab-fretes" class="tab-content active">
+        <div class="bg-white rounded-lg shadow">
+            <div class="p-6 border-b">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold">Tabela de Fretes</h3>
+                    <button onclick="abrirModalFrete()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        <i class="fas fa-plus mr-2"></i>Novo Frete
+                    </button>
+                </div>
+                <div class="mt-4">
+                    <input type="text" id="buscaFretes" placeholder="Buscar por origem, destino ou tipo..." 
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                        onkeyup="buscarFretes()">
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Origem</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Destino</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor Base (R$)</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor por KM</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaFretes" class="divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Produtos -->
+    <div id="tab-produtos" class="tab-content">
+        <div class="bg-white rounded-lg shadow">
+            <div class="p-6 border-b">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold">Tabela de Produtos</h3>
+                    <button onclick="abrirModalProduto()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        <i class="fas fa-plus mr-2"></i>Novo Produto
+                    </button>
+                </div>
+                <div class="mt-4">
+                    <input type="text" id="buscaProdutos" placeholder="Buscar por código, nome ou categoria..." 
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                        onkeyup="buscarProdutos()">
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoria</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unidade</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Peso (kg)</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor (R$)</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaProdutos" class="divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Serviços -->
+    <div id="tab-servicos" class="tab-content">
+        <div class="bg-white rounded-lg shadow">
+            <div class="p-6 border-b">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold">Tabela de Serviços</h3>
+                    <button onclick="abrirModalServico()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        <i class="fas fa-plus mr-2"></i>Novo Serviço
+                    </button>
+                </div>
+                <div class="mt-4">
+                    <input type="text" id="buscaServicos" placeholder="Buscar por código, nome ou tipo..." 
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                        onkeyup="buscarServicos()">
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descrição</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor (R$)</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaServicos" class="divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Impostos -->
+    <div id="tab-impostos" class="tab-content">
+        <div class="bg-white rounded-lg shadow">
+            <div class="p-6 border-b">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold">Tabela de Impostos</h3>
+                    <button onclick="abrirModalImposto()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        <i class="fas fa-plus mr-2"></i>Novo Imposto
+                    </button>
+                </div>
+                <div class="mt-4">
+                    <input type="text" id="buscaImpostos" placeholder="Buscar por nome, tipo ou UF..." 
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                        onkeyup="buscarImpostos()">
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">UF</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alíquota (%)</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Base Cálculo</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaImpostos" class="divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Comissões -->
+    <div id="tab-comissoes" class="tab-content">
+        <div class="bg-white rounded-lg shadow">
+            <div class="p-6 border-b">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold">Tabela de Comissões</h3>
+                    <button onclick="abrirModalComissao()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        <i class="fas fa-plus mr-2"></i>Nova Comissão
+                    </button>
+                </div>
+                <div class="mt-4">
+                    <input type="text" id="buscaComissoes" placeholder="Buscar por cargo, tipo ou função..." 
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                        onkeyup="buscarComissoes()">
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cargo/Função</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Percentual (%)</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor Fixo (R$)</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aplicação</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaComissoes" class="divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modais (simplificados para não alongar muito) -->
+    <!-- Modal Frete -->
+    <div id="modalFrete" class="modal hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold">Novo Frete</h3>
+                <button onclick="fecharModal('frete')" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form onsubmit="salvarFrete(event)">
+                <div class="grid grid-cols-1 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Origem*</label>
+                        <input type="text" id="freteOrigem" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Destino*</label>
+                        <input type="text" id="freteDestino" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Carga*</label>
+                        <select id="freteTipo" class="w-full px-3 py-2 border rounded-lg">
+                            <option value="geral">Carga Geral</option>
+                            <option value="fracionada">Carga Fracionada</option>
+                            <option value="perigosa">Carga Perigosa</option>
+                            <option value="refrigerada">Carga Refrigerada</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Valor Base (R$)*</label>
+                        <input type="number" step="0.01" id="freteValorBase" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Valor por KM (R$)</label>
+                        <input type="number" step="0.01" id="freteValorKm" class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-4 mt-6">
+                    <button type="button" onclick="fecharModal('frete')" class="px-6 py-2 border rounded-lg hover:bg-gray-50">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Dados iniciais
+        let tabelaFretes = JSON.parse(localStorage.getItem('tabelaFretes')) || [
+            { id: 1, origem: 'São Paulo, SP', destino: 'Rio de Janeiro, RJ', tipo: 'geral', valor_base: 1200.00, valor_km: 2.80, status: 'ativo' },
+            { id: 2, origem: 'São Paulo, SP', destino: 'Belo Horizonte, MG', tipo: 'geral', valor_base: 1500.00, valor_km: 2.60, status: 'ativo' },
+            { id: 3, origem: 'São Paulo, SP', destino: 'Curitiba, PR', tipo: 'fracionada', valor_base: 900.00, valor_km: 2.40, status: 'ativo' }
+        ];
+
+        let tabelaProdutos = JSON.parse(localStorage.getItem('tabelaProdutos')) || [
+            { id: 1, codigo: 'PROD001', nome: 'Produto A', categoria: 'Eletrônicos', unidade: 'UN', peso: 1.5, valor: 150.00, status: 'ativo' },
+            { id: 2, codigo: 'PROD002', nome: 'Produto B', categoria: 'Alimentos', unidade: 'KG', peso: 5.0, valor: 45.00, status: 'ativo' }
+        ];
+
+        let tabelaServicos = JSON.parse(localStorage.getItem('tabelaServicos')) || [
+            { id: 1, codigo: 'SERV001', descricao: 'Serviço de Carga', tipo: 'carga', valor: 200.00, status: 'ativo' },
+            { id: 2, codigo: 'SERV002', descricao: 'Serviço de Descarga', tipo: 'descarga', valor: 150.00, status: 'ativo' }
+        ];
+
+        let tabelaImpostos = JSON.parse(localStorage.getItem('tabelaImpostos')) || [
+            { id: 1, nome: 'ICMS', tipo: 'estadual', uf: 'SP', aliquota: 18.00, base_calculo: 'valor_total', status: 'ativo' },
+            { id: 2, nome: 'ISS', tipo: 'municipal', uf: 'SP', aliquota: 5.00, base_calculo: 'servico', status: 'ativo' }
+        ];
+
+        let tabelaComissoes = JSON.parse(localStorage.getItem('tabelaComissoes')) || [
+            { id: 1, cargo: 'Vendedor', tipo: 'percentual', percentual: 5.00, valor_fixo: null, aplicacao: 'venda', status: 'ativo' },
+            { id: 2, cargo: 'Representante', tipo: 'percentual', percentual: 3.00, valor_fixo: null, aplicacao: 'frete', status: 'ativo' }
+        ];
+
+        // Salvar dados iniciais
+        if (!localStorage.getItem('tabelaFretes')) localStorage.setItem('tabelaFretes', JSON.stringify(tabelaFretes));
+        if (!localStorage.getItem('tabelaProdutos')) localStorage.setItem('tabelaProdutos', JSON.stringify(tabelaProdutos));
+        if (!localStorage.getItem('tabelaServicos')) localStorage.setItem('tabelaServicos', JSON.stringify(tabelaServicos));
+        if (!localStorage.getItem('tabelaImpostos')) localStorage.setItem('tabelaImpostos', JSON.stringify(tabelaImpostos));
+        if (!localStorage.getItem('tabelaComissoes')) localStorage.setItem('tabelaComissoes', JSON.stringify(tabelaComissoes));
+
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarTabelaFretes();
+            carregarTabelaProdutos();
+            carregarTabelaServicos();
+            carregarTabelaImpostos();
+            carregarTabelaComissoes();
+        });
+
+        function mudarAba(aba) {
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`tab-${aba}`).classList.add('active');
+        }
+
+        // Funções para Fretes
+        function carregarTabelaFretes() {
+            const dados = JSON.parse(localStorage.getItem('tabelaFretes')) || [];
+            const tbody = document.getElementById('tabelaFretes');
+            
+            if (!tbody) return;
+            
+            tbody.innerHTML = dados.map(item => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${item.id}</td>
+                    <td class="px-6 py-4">${item.origem}</td>
+                    <td class="px-6 py-4">${item.destino}</td>
+                    <td class="px-6 py-4">${item.tipo}</td>
+                    <td class="px-6 py-4">R$ ${item.valor_base.toFixed(2)}</td>
+                    <td class="px-6 py-4">R$ ${item.valor_km?.toFixed(2) || '-'}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">${item.status}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarFrete(${item.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="excluirFrete(${item.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function buscarFretes() {
+            const termo = document.getElementById('buscaFretes').value.toLowerCase();
+            const dados = JSON.parse(localStorage.getItem('tabelaFretes')) || [];
+            
+            const resultados = dados.filter(item => 
+                item.origem.toLowerCase().includes(termo) ||
+                item.destino.toLowerCase().includes(termo) ||
+                item.tipo.toLowerCase().includes(termo)
+            );
+            
+            const tbody = document.getElementById('tabelaFretes');
+            tbody.innerHTML = resultados.map(item => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${item.id}</td>
+                    <td class="px-6 py-4">${item.origem}</td>
+                    <td class="px-6 py-4">${item.destino}</td>
+                    <td class="px-6 py-4">${item.tipo}</td>
+                    <td class="px-6 py-4">R$ ${item.valor_base.toFixed(2)}</td>
+                    <td class="px-6 py-4">R$ ${item.valor_km?.toFixed(2) || '-'}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">${item.status}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarFrete(${item.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="excluirFrete(${item.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function abrirModalFrete() {
+            document.getElementById('modalFrete').classList.remove('hidden');
+            document.getElementById('modalFrete').classList.add('flex');
+        }
+
+        function salvarFrete(event) {
+            event.preventDefault();
+            alert('Frete salvo com sucesso!');
+            fecharModal('frete');
+            carregarTabelaFretes();
+        }
+
+        function excluirFrete(id) {
+            if (confirm('Deseja excluir este item?')) {
+                alert('Item excluído com sucesso!');
+                carregarTabelaFretes();
+            }
+        }
+
+        // Funções para Produtos
+        function carregarTabelaProdutos() {
+            const dados = JSON.parse(localStorage.getItem('tabelaProdutos')) || [];
+            const tbody = document.getElementById('tabelaProdutos');
+            
+            if (!tbody) return;
+            
+            tbody.innerHTML = dados.map(item => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${item.id}</td>
+                    <td class="px-6 py-4">${item.codigo}</td>
+                    <td class="px-6 py-4">${item.nome}</td>
+                    <td class="px-6 py-4">${item.categoria}</td>
+                    <td class="px-6 py-4">${item.unidade}</td>
+                    <td class="px-6 py-4">${item.peso}</td>
+                    <td class="px-6 py-4">R$ ${item.valor.toFixed(2)}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">${item.status}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarProduto(${item.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="excluirProduto(${item.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function buscarProdutos() {
+            const termo = document.getElementById('buscaProdutos').value.toLowerCase();
+            const dados = JSON.parse(localStorage.getItem('tabelaProdutos')) || [];
+            
+            const resultados = dados.filter(item => 
+                item.nome.toLowerCase().includes(termo) ||
+                item.codigo.toLowerCase().includes(termo) ||
+                item.categoria.toLowerCase().includes(termo)
+            );
+            
+            const tbody = document.getElementById('tabelaProdutos');
+            tbody.innerHTML = resultados.map(item => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${item.id}</td>
+                    <td class="px-6 py-4">${item.codigo}</td>
+                    <td class="px-6 py-4">${item.nome}</td>
+                    <td class="px-6 py-4">${item.categoria}</td>
+                    <td class="px-6 py-4">${item.unidade}</td>
+                    <td class="px-6 py-4">${item.peso}</td>
+                    <td class="px-6 py-4">R$ ${item.valor.toFixed(2)}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">${item.status}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarProduto(${item.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="excluirProduto(${item.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Funções para Serviços
+        function carregarTabelaServicos() {
+            const dados = JSON.parse(localStorage.getItem('tabelaServicos')) || [];
+            const tbody = document.getElementById('tabelaServicos');
+            
+            if (!tbody) return;
+            
+            tbody.innerHTML = dados.map(item => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${item.id}</td>
+                    <td class="px-6 py-4">${item.codigo}</td>
+                    <td class="px-6 py-4">${item.descricao}</td>
+                    <td class="px-6 py-4">${item.tipo}</td>
+                    <td class="px-6 py-4">R$ ${item.valor.toFixed(2)}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">${item.status}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarServico(${item.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="excluirServico(${item.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function buscarServicos() {
+            const termo = document.getElementById('buscaServicos').value.toLowerCase();
+            const dados = JSON.parse(localStorage.getItem('tabelaServicos')) || [];
+            
+            const resultados = dados.filter(item => 
+                item.descricao.toLowerCase().includes(termo) ||
+                item.codigo.toLowerCase().includes(termo) ||
+                item.tipo.toLowerCase().includes(termo)
+            );
+            
+            const tbody = document.getElementById('tabelaServicos');
+            tbody.innerHTML = resultados.map(item => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${item.id}</td>
+                    <td class="px-6 py-4">${item.codigo}</td>
+                    <td class="px-6 py-4">${item.descricao}</td>
+                    <td class="px-6 py-4">${item.tipo}</td>
+                    <td class="px-6 py-4">R$ ${item.valor.toFixed(2)}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">${item.status}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarServico(${item.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="excluirServico(${item.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Funções para Impostos
+        function carregarTabelaImpostos() {
+            const dados = JSON.parse(localStorage.getItem('tabelaImpostos')) || [];
+            const tbody = document.getElementById('tabelaImpostos');
+            
+            if (!tbody) return;
+            
+            tbody.innerHTML = dados.map(item => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${item.id}</td>
+                    <td class="px-6 py-4">${item.nome}</td>
+                    <td class="px-6 py-4">${item.tipo}</td>
+                    <td class="px-6 py-4">${item.uf}</td>
+                    <td class="px-6 py-4">${item.aliquota}%</td>
+                    <td class="px-6 py-4">${item.base_calculo}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">${item.status}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarImposto(${item.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="excluirImposto(${item.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function buscarImpostos() {
+            const termo = document.getElementById('buscaImpostos').value.toLowerCase();
+            const dados = JSON.parse(localStorage.getItem('tabelaImpostos')) || [];
+            
+            const resultados = dados.filter(item => 
+                item.nome.toLowerCase().includes(termo) ||
+                item.tipo.toLowerCase().includes(termo) ||
+                item.uf.toLowerCase().includes(termo)
+            );
+            
+            const tbody = document.getElementById('tabelaImpostos');
+            tbody.innerHTML = resultados.map(item => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${item.id}</td>
+                    <td class="px-6 py-4">${item.nome}</td>
+                    <td class="px-6 py-4">${item.tipo}</td>
+                    <td class="px-6 py-4">${item.uf}</td>
+                    <td class="px-6 py-4">${item.aliquota}%</td>
+                    <td class="px-6 py-4">${item.base_calculo}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">${item.status}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarImposto(${item.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="excluirImposto(${item.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Funções para Comissões
+        function carregarTabelaComissoes() {
+            const dados = JSON.parse(localStorage.getItem('tabelaComissoes')) || [];
+            const tbody = document.getElementById('tabelaComissoes');
+            
+            if (!tbody) return;
+            
+            tbody.innerHTML = dados.map(item => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${item.id}</td>
+                    <td class="px-6 py-4">${item.cargo}</td>
+                    <td class="px-6 py-4">${item.tipo}</td>
+                    <td class="px-6 py-4">${item.percentual ? item.percentual + '%' : '-'}</td>
+                    <td class="px-6 py-4">${item.valor_fixo ? 'R$ ' + item.valor_fixo.toFixed(2) : '-'}</td>
+                    <td class="px-6 py-4">${item.aplicacao}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">${item.status}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarComissao(${item.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="excluirComissao(${item.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function buscarComissoes() {
+            const termo = document.getElementById('buscaComissoes').value.toLowerCase();
+            const dados = JSON.parse(localStorage.getItem('tabelaComissoes')) || [];
+            
+            const resultados = dados.filter(item => 
+                item.cargo.toLowerCase().includes(termo) ||
+                item.tipo.toLowerCase().includes(termo) ||
+                item.aplicacao.toLowerCase().includes(termo)
+            );
+            
+            const tbody = document.getElementById('tabelaComissoes');
+            tbody.innerHTML = resultados.map(item => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${item.id}</td>
+                    <td class="px-6 py-4">${item.cargo}</td>
+                    <td class="px-6 py-4">${item.tipo}</td>
+                    <td class="px-6 py-4">${item.percentual ? item.percentual + '%' : '-'}</td>
+                    <td class="px-6 py-4">${item.valor_fixo ? 'R$ ' + item.valor_fixo.toFixed(2) : '-'}</td>
+                    <td class="px-6 py-4">${item.aplicacao}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">${item.status}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarComissao(${item.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="excluirComissao(${item.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Funções genéricas
+        function abrirModalProduto() { alert('Módulo em desenvolvimento'); }
+        function abrirModalServico() { alert('Módulo em desenvolvimento'); }
+        function abrirModalImposto() { alert('Módulo em desenvolvimento'); }
+        function abrirModalComissao() { alert('Módulo em desenvolvimento'); }
+        
+        function fecharModal(tipo) {
+            document.getElementById(`modal${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`).classList.add('hidden');
+            document.getElementById(`modal${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`).classList.remove('flex');
+        }
+
+        function editarFrete(id) { alert('Editar frete ' + id); }
+        function editarProduto(id) { alert('Editar produto ' + id); }
+        function editarServico(id) { alert('Editar serviço ' + id); }
+        function editarImposto(id) { alert('Editar imposto ' + id); }
+        function editarComissao(id) { alert('Editar comissão ' + id); }
+        
+        function excluirProduto(id) { if(confirm('Excluir?')) alert('Produto excluído'); }
+        function excluirServico(id) { if(confirm('Excluir?')) alert('Serviço excluído'); }
+        function excluirImposto(id) { if(confirm('Excluir?')) alert('Imposto excluído'); }
+        function excluirComissao(id) { if(confirm('Excluir?')) alert('Comissão excluída'); }
+    </script>
+</body>
+</html>
