@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransLog - Clientes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .modal {
+            transition: opacity 0.3s ease;
+        }
+        .modal.hidden {
+            display: none;
+            opacity: 0;
+        }
+        .modal.flex {
+            display: flex;
+            opacity: 1;
+        }
+        table tr:hover {
+            background-color: #f9fafb;
+        }
+        .error-input {
+            border-color: #ef4444 !important;
+            background-color: #fef2f2;
+        }
+        .error-message {
+            color: #ef4444;
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+        .success-input {
+            border-color: #10b981 !important;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-semibold">Clientes</h3>
+                <button onclick="abrirModalCliente()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-plus mr-2"></i>Novo Cliente
+                </button>
+            </div>
+            
+            <!-- Busca -->
+            <div class="mt-4">
+                <input type="text" id="buscaClientes" placeholder="Buscar cliente por nome, documento ou cidade..." 
+                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                    onkeyup="buscarClientes()">
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome/Razão Social</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">CPF/CNPJ</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telefone</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cidade/UF</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaClientes" class="divide-y divide-gray-200"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal de Cliente -->
+    <div id="modalCliente" class="modal hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold" id="modalTitulo">Novo Cliente</h3>
+                <button onclick="fecharModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="formCliente" onsubmit="salvarCliente(event)">
+                <input type="hidden" id="clienteId">
+                
+                <!-- Tipo de Pessoa -->
+                <div class="mb-4 flex space-x-4">
+                    <label class="inline-flex items-center">
+                        <input type="radio" name="tipoPessoa" value="fisica" checked onchange="mudarTipoPessoa()" class="mr-2"> Pessoa Física (CPF)
+                    </label>
+                    <label class="inline-flex items-center">
+                        <input type="radio" name="tipoPessoa" value="juridica" onchange="mudarTipoPessoa()" class="mr-2"> Pessoa Jurídica (CNPJ)
+                    </label>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nome/Razão Social*</label>
+                        <input type="text" id="clienteNome" required maxlength="100" 
+                            class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" id="labelDocumento">CPF*</label>
+                        <input type="text" id="clienteCpfCnpj" required maxlength="18" 
+                            onkeyup="mascaraDocumento(this)" onblur="validarDocumento()"
+                            class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500">
+                        <div id="documentoError" class="error-message hidden"></div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                        <input type="text" id="clienteTelefone" maxlength="15" onkeyup="mascaraTelefone(this)"
+                            class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email*</label>
+                        <input type="email" id="clienteEmail" required maxlength="100" 
+                            onblur="validarEmail()"
+                            class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500">
+                        <div id="emailError" class="error-message hidden"></div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">CEP</label>
+                        <div class="flex space-x-2">
+                            <input type="text" id="clienteCep" maxlength="9" onkeyup="mascaraCep(this)" 
+                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500">
+                            <button type="button" onclick="buscarCep()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        <div id="cepError" class="error-message hidden"></div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Endereço</label>
+                        <input type="text" id="clienteEndereco" maxlength="200" readonly
+                            class="w-full px-3 py-2 border rounded-lg bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
+                        <input type="text" id="clienteCidade" maxlength="100" readonly
+                            class="w-full px-3 py-2 border rounded-lg bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">UF</label>
+                        <input type="text" id="clienteUf" maxlength="2" readonly
+                            class="w-full px-3 py-2 border rounded-lg bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Bairro</label>
+                        <input type="text" id="clienteBairro" maxlength="100" readonly
+                            class="w-full px-3 py-2 border rounded-lg bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Complemento</label>
+                        <input type="text" id="clienteComplemento" maxlength="100"
+                            class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Número</label>
+                        <input type="text" id="clienteNumero" maxlength="10"
+                            class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Inscrição Estadual</label>
+                        <input type="text" id="clienteIe" maxlength="20"
+                            class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Inscrição Municipal</label>
+                        <input type="text" id="clienteIm" maxlength="20"
+                            class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <select id="clienteStatus" class="w-full px-3 py-2 border rounded-lg">
+                            <option value="ativo">Ativo</option>
+                            <option value="inativo">Inativo</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Observações</label>
+                    <textarea id="clienteObservacoes" rows="3" maxlength="500" class="w-full px-3 py-2 border rounded-lg"></textarea>
+                </div>
+                <div class="flex justify-end space-x-4 mt-6">
+                    <button type="button" onclick="fecharModal()" class="px-6 py-2 border rounded-lg hover:bg-gray-50">Cancelar</button>
+                    <button type="submit" id="btnSalvar" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Dados iniciais
+        let clientes = JSON.parse(localStorage.getItem('clientes')) || [
+            { id: 1, nome: 'Transportadora ABC Ltda', cpf_cnpj: '12.345.678/0001-90', telefone: '(11) 3456-7890', email: 'contato@abc.com', cidade: 'São Paulo', uf: 'SP', status: 'ativo' },
+            { id: 2, nome: 'Indústrias XYZ S.A.', cpf_cnpj: '98.765.432/0001-10', telefone: '(11) 4567-8901', email: 'fiscal@xyz.com', cidade: 'Guarulhos', uf: 'SP', status: 'ativo' },
+            { id: 3, nome: 'João da Silva', cpf_cnpj: '123.456.789-00', telefone: '(11) 98765-4321', email: 'joao@email.com', cidade: 'São Paulo', uf: 'SP', status: 'ativo' }
+        ];
+
+        // Salvar dados iniciais se não existirem
+        if (!localStorage.getItem('clientes')) {
+            localStorage.setItem('clientes', JSON.stringify(clientes));
+        }
+
+        // Carregar lista ao iniciar
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarTabela();
+        });
+
+        function carregarTabela() {
+            clientes = JSON.parse(localStorage.getItem('clientes')) || [];
+            const tbody = document.getElementById('tabelaClientes');
+            
+            if (clientes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">Nenhum cliente cadastrado</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = clientes.map(c => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${c.id}</td>
+                    <td class="px-6 py-4">${c.nome}</td>
+                    <td class="px-6 py-4">${c.cpf_cnpj}</td>
+                    <td class="px-6 py-4">${c.telefone || '-'}</td>
+                    <td class="px-6 py-4">${c.email || '-'}</td>
+                    <td class="px-6 py-4">${c.cidade || '-'}/${c.uf || '-'}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full ${c.status === 'ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                            ${c.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarCliente(${c.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="excluirCliente(${c.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function buscarClientes() {
+            const termo = document.getElementById('buscaClientes').value.toLowerCase();
+            const clientes = JSON.parse(localStorage.getItem('clientes')) || [];
+            
+            const resultados = clientes.filter(c => 
+                c.nome.toLowerCase().includes(termo) ||
+                (c.cpf_cnpj && c.cpf_cnpj.toLowerCase().includes(termo)) ||
+                (c.cidade && c.cidade.toLowerCase().includes(termo))
+            );
+            
+            const tbody = document.getElementById('tabelaClientes');
+            if (resultados.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">Nenhum cliente encontrado</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = resultados.map(c => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${c.id}</td>
+                    <td class="px-6 py-4">${c.nome}</td>
+                    <td class="px-6 py-4">${c.cpf_cnpj}</td>
+                    <td class="px-6 py-4">${c.telefone || '-'}</td>
+                    <td class="px-6 py-4">${c.email || '-'}</td>
+                    <td class="px-6 py-4">${c.cidade || '-'}/${c.uf || '-'}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full ${c.status === 'ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                            ${c.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="editarCliente(${c.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="excluirCliente(${c.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Funções de Máscara
+        function mascaraDocumento(input) {
+            let valor = input.value.replace(/\D/g, '');
+            const tipo = document.querySelector('input[name="tipoPessoa"]:checked').value;
+            
+            if (tipo === 'fisica') {
+                // CPF: 000.000.000-00
+                if (valor.length <= 11) {
+                    valor = valor.replace(/(\d{3})(\d)/, '$1.$2');
+                    valor = valor.replace(/(\d{3})(\d)/, '$1.$2');
+                    valor = valor.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+                }
+            } else {
+                // CNPJ: 00.000.000/0000-00
+                if (valor.length <= 14) {
+                    valor = valor.replace(/^(\d{2})(\d)/, '$1.$2');
+                    valor = valor.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+                    valor = valor.replace(/\.(\d{3})(\d)/, '.$1/$2');
+                    valor = valor.replace(/(\d{4})(\d)/, '$1-$2');
+                }
+            }
+            
+            input.value = valor;
+        }
+
+        function mascaraTelefone(input) {
+            let valor = input.value.replace(/\D/g, '');
+            if (valor.length <= 10) {
+                // Telefone fixo: (00) 0000-0000
+                valor = valor.replace(/^(\d{2})(\d)/, '($1) $2');
+                valor = valor.replace(/(\d{4})(\d)/, '$1-$2');
+            } else {
+                // Celular: (00) 00000-0000
+                valor = valor.replace(/^(\d{2})(\d)/, '($1) $2');
+                valor = valor.replace(/(\d{5})(\d)/, '$1-$2');
+            }
+            input.value = valor;
+        }
+
+        function mascaraCep(input) {
+            let valor = input.value.replace(/\D/g, '');
+            if (valor.length > 5) {
+                valor = valor.replace(/^(\d{5})(\d)/, '$1-$2');
+            }
+            input.value = valor;
+        }
+
+        // Funções de Validação
+        function validarDocumento() {
+            const input = document.getElementById('clienteCpfCnpj');
+            const errorDiv = document.getElementById('documentoError');
+            const valor = input.value.replace(/\D/g, '');
+            const tipo = document.querySelector('input[name="tipoPessoa"]:checked').value;
+            
+            let valido = false;
+            
+            if (tipo === 'fisica') {
+                if (valor.length === 11) {
+                    valido = validarCPF(valor);
+                    errorDiv.textContent = valido ? '' : 'CPF inválido';
+                } else {
+                    errorDiv.textContent = 'CPF deve ter 11 dígitos';
+                }
+            } else {
+                if (valor.length === 14) {
+                    valido = validarCNPJ(valor);
+                    errorDiv.textContent = valido ? '' : 'CNPJ inválido';
+                } else {
+                    errorDiv.textContent = 'CNPJ deve ter 14 dígitos';
+                }
+            }
+            
+            if (!valido && valor.length > 0) {
+                input.classList.add('error-input');
+                errorDiv.classList.remove('hidden');
+                return false;
+            } else {
+                input.classList.remove('error-input');
+                input.classList.add('success-input');
+                errorDiv.classList.add('hidden');
+                return true;
+            }
+        }
+
+        function validarCPF(cpf) {
+            cpf = cpf.replace(/\D/g, '');
+            if (cpf.length !== 11) return false;
+            
+            // Elimina CPFs inválidos conhecidos
+            if (/^(\d)\1+$/.test(cpf)) return false;
+            
+            // Valida 1º dígito
+            let soma = 0;
+            for (let i = 0; i < 9; i++) soma += parseInt(cpf.charAt(i)) * (10 - i);
+            let resto = 11 - (soma % 11);
+            let dig1 = (resto === 10 || resto === 11) ? 0 : resto;
+            if (dig1 !== parseInt(cpf.charAt(9))) return false;
+            
+            // Valida 2º dígito
+            soma = 0;
+            for (let i = 0; i < 10; i++) soma += parseInt(cpf.charAt(i)) * (11 - i);
+            resto = 11 - (soma % 11);
+            let dig2 = (resto === 10 || resto === 11) ? 0 : resto;
+            return dig2 === parseInt(cpf.charAt(10));
+        }
+
+        function validarCNPJ(cnpj) {
+            cnpj = cnpj.replace(/\D/g, '');
+            if (cnpj.length !== 14) return false;
+            
+            // Elimina CNPJs inválidos conhecidos
+            if (/^(\d)\1+$/.test(cnpj)) return false;
+            
+            // Valida 1º dígito
+            let tamanho = cnpj.length - 2;
+            let numeros = cnpj.substring(0, tamanho);
+            let digitos = cnpj.substring(tamanho);
+            let soma = 0;
+            let pos = tamanho - 7;
+            for (let i = tamanho; i >= 1; i--) {
+                soma += numeros.charAt(tamanho - i) * pos--;
+                if (pos < 2) pos = 9;
+            }
+            let resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+            if (resultado !== parseInt(digitos.charAt(0))) return false;
+            
+            // Valida 2º dígito
+            tamanho = tamanho + 1;
+            numeros = cnpj.substring(0, tamanho);
+            soma = 0;
+            pos = tamanho - 7;
+            for (let i = tamanho; i >= 1; i--) {
+                soma += numeros.charAt(tamanho - i) * pos--;
+                if (pos < 2) pos = 9;
+            }
+            resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+            return resultado === parseInt(digitos.charAt(1));
+        }
+
+        function validarEmail() {
+            const email = document.getElementById('clienteEmail').value;
+            const errorDiv = document.getElementById('emailError');
+            const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (!regex.test(email)) {
+                document.getElementById('clienteEmail').classList.add('error-input');
+                errorDiv.textContent = 'Email inválido';
+                errorDiv.classList.remove('hidden');
+                return false;
+            } else {
+                document.getElementById('clienteEmail').classList.remove('error-input');
+                document.getElementById('clienteEmail').classList.add('success-input');
+                errorDiv.classList.add('hidden');
+                return true;
+            }
+        }
+
+        function mudarTipoPessoa() {
+            const tipo = document.querySelector('input[name="tipoPessoa"]:checked').value;
+            const label = document.getElementById('labelDocumento');
+            const input = document.getElementById('clienteCpfCnpj');
+            
+            if (tipo === 'fisica') {
+                label.textContent = 'CPF*';
+                input.placeholder = '000.000.000-00';
+                input.maxLength = 14;
+            } else {
+                label.textContent = 'CNPJ*';
+                input.placeholder = '00.000.000/0000-00';
+                input.maxLength = 18;
+            }
+            
+            input.value = '';
+            input.classList.remove('error-input', 'success-input');
+            document.getElementById('documentoError').classList.add('hidden');
+        }
+
+        // Função de busca de CEP
+        function buscarCep() {
+            const cep = document.getElementById('clienteCep').value.replace(/\D/g, '');
+            const cepError = document.getElementById('cepError');
+            
+            if (cep.length !== 8) {
+                cepError.textContent = 'CEP deve ter 8 dígitos';
+                cepError.classList.remove('hidden');
+                return;
+            }
+            
+            // Mostrar loading
+            document.getElementById('clienteEndereco').value = 'Buscando...';
+            document.getElementById('clienteCidade').value = '...';
+            document.getElementById('clienteUf').value = '...';
+            document.getElementById('clienteBairro').value = '...';
+            
+            // Usando a API ViaCEP
+            fetch(`https://viacep.com.br/ws/${cep}/json/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.erro) {
+                        throw new Error('CEP não encontrado');
+                    }
+                    
+                    document.getElementById('clienteEndereco').value = data.logradouro || '';
+                    document.getElementById('clienteCidade').value = data.localidade || '';
+                    document.getElementById('clienteUf').value = data.uf || '';
+                    document.getElementById('clienteBairro').value = data.bairro || '';
+                    
+                    cepError.classList.add('hidden');
+                    document.getElementById('clienteCep').classList.add('success-input');
+                })
+                .catch(error => {
+                    document.getElementById('clienteEndereco').value = '';
+                    document.getElementById('clienteCidade').value = '';
+                    document.getElementById('clienteUf').value = '';
+                    document.getElementById('clienteBairro').value = '';
+                    
+                    cepError.textContent = 'Erro ao buscar CEP: ' + error.message;
+                    cepError.classList.remove('hidden');
+                    document.getElementById('clienteCep').classList.add('error-input');
+                });
+        }
+
+        function abrirModalCliente(id = null) {
+            document.getElementById('formCliente').reset();
+            document.getElementById('clienteId').value = '';
+            document.getElementById('modalTitulo').textContent = 'Novo Cliente';
+            
+            // Limpar campos de endereço
+            document.getElementById('clienteEndereco').value = '';
+            document.getElementById('clienteCidade').value = '';
+            document.getElementById('clienteUf').value = '';
+            document.getElementById('clienteBairro').value = '';
+            document.getElementById('clienteComplemento').value = '';
+            document.getElementById('clienteNumero').value = '';
+            
+            // Limpar classes de validação
+            document.querySelectorAll('input').forEach(input => {
+                input.classList.remove('error-input', 'success-input');
+            });
+            
+            if (id) {
+                const clientes = JSON.parse(localStorage.getItem('clientes')) || [];
+                const cliente = clientes.find(c => c.id === id);
+                if (cliente) {
+                    document.getElementById('modalTitulo').textContent = 'Editar Cliente';
+                    document.getElementById('clienteId').value = cliente.id;
+                    
+                    // Detectar tipo de pessoa pelo documento
+                    const documento = cliente.cpf_cnpj.replace(/\D/g, '');
+                    if (documento.length === 11) {
+                        document.querySelector('input[value="fisica"]').checked = true;
+                    } else {
+                        document.querySelector('input[value="juridica"]').checked = true;
+                    }
+                    mudarTipoPessoa();
+                    
+                    document.getElementById('clienteNome').value = cliente.nome || '';
+                    document.getElementById('clienteCpfCnpj').value = cliente.cpf_cnpj || '';
+                    document.getElementById('clienteTelefone').value = cliente.telefone || '';
+                    document.getElementById('clienteEmail').value = cliente.email || '';
+                    document.getElementById('clienteCep').value = cliente.cep || '';
+                    document.getElementById('clienteEndereco').value = cliente.endereco || '';
+                    document.getElementById('clienteCidade').value = cliente.cidade || '';
+                    document.getElementById('clienteUf').value = cliente.uf || '';
+                    document.getElementById('clienteBairro').value = cliente.bairro || '';
+                    document.getElementById('clienteComplemento').value = cliente.complemento || '';
+                    document.getElementById('clienteNumero').value = cliente.numero || '';
+                    document.getElementById('clienteIe').value = cliente.ie || '';
+                    document.getElementById('clienteIm').value = cliente.im || '';
+                    document.getElementById('clienteStatus').value = cliente.status || 'ativo';
+                    document.getElementById('clienteObservacoes').value = cliente.observacoes || '';
+                }
+            }
+            
+            document.getElementById('modalCliente').classList.remove('hidden');
+            document.getElementById('modalCliente').classList.add('flex');
+        }
+
+        function fecharModal() {
+            document.getElementById('modalCliente').classList.add('hidden');
+            document.getElementById('modalCliente').classList.remove('flex');
+        }
+
+        function salvarCliente(event) {
+            event.preventDefault();
+            
+            // Validar campos obrigatórios
+            const docValido = validarDocumento();
+            const emailValido = validarEmail();
+            
+            if (!docValido || !emailValido) {
+                alert('Por favor, corrija os campos com erro antes de salvar.');
+                return;
+            }
+            
+            const clientes = JSON.parse(localStorage.getItem('clientes')) || [];
+            const id = document.getElementById('clienteId').value;
+            
+            const clienteData = {
+                nome: document.getElementById('clienteNome').value,
+                cpf_cnpj: document.getElementById('clienteCpfCnpj').value,
+                telefone: document.getElementById('clienteTelefone').value,
+                email: document.getElementById('clienteEmail').value,
+                cep: document.getElementById('clienteCep').value,
+                endereco: document.getElementById('clienteEndereco').value,
+                cidade: document.getElementById('clienteCidade').value,
+                uf: document.getElementById('clienteUf').value,
+                bairro: document.getElementById('clienteBairro').value,
+                complemento: document.getElementById('clienteComplemento').value,
+                numero: document.getElementById('clienteNumero').value,
+                ie: document.getElementById('clienteIe').value,
+                im: document.getElementById('clienteIm').value,
+                status: document.getElementById('clienteStatus').value,
+                observacoes: document.getElementById('clienteObservacoes').value
+            };
+
+            if (id) {
+                // Editar
+                const index = clientes.findIndex(c => c.id == id);
+                if (index !== -1) {
+                    const oldData = {...clientes[index]};
+                    clientes[index] = { ...clientes[index], ...clienteData };
+                    localStorage.setItem('clientes', JSON.stringify(clientes));
+                    
+                    window.parent.postMessage({
+                        type: 'logModificacao',
+                        data: {
+                            tabela: 'clientes',
+                            operacao: 'UPDATE',
+                            registro_id: id,
+                            dados_anteriores: oldData,
+                            dados_novos: clientes[index]
+                        }
+                    }, '*');
+                    
+                    alert('Cliente atualizado com sucesso!');
+                }
+            } else {
+                // Novo
+                const novoId = clientes.length > 0 ? Math.max(...clientes.map(c => c.id)) + 1 : 1;
+                const novoCliente = { id: novoId, ...clienteData };
+                clientes.push(novoCliente);
+                localStorage.setItem('clientes', JSON.stringify(clientes));
+                
+                window.parent.postMessage({
+                    type: 'logModificacao',
+                    data: {
+                        tabela: 'clientes',
+                        operacao: 'INSERT',
+                        registro_id: novoId,
+                        dados_anteriores: null,
+                        dados_novos: novoCliente
+                    }
+                }, '*');
+                
+                alert('Cliente salvo com sucesso!');
+            }
+
+            fecharModal();
+            carregarTabela();
+        }
+
+        function editarCliente(id) {
+            abrirModalCliente(id);
+        }
+
+        function excluirCliente(id) {
+            if (confirm('Deseja realmente excluir este cliente?')) {
+                const clientes = JSON.parse(localStorage.getItem('clientes')) || [];
+                const cliente = clientes.find(c => c.id === id);
+                const novosClientes = clientes.filter(c => c.id !== id);
+                localStorage.setItem('clientes', JSON.stringify(novosClientes));
+                
+                window.parent.postMessage({
+                    type: 'logModificacao',
+                    data: {
+                        tabela: 'clientes',
+                        operacao: 'DELETE',
+                        registro_id: id,
+                        dados_anteriores: cliente,
+                        dados_novos: null
+                    }
+                }, '*');
+                
+                alert('Cliente excluído com sucesso!');
+                carregarTabela();
+            }
+        }
+    </script>
+</body>
+</html>
